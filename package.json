@@ -1,23 +1,16 @@
 {
-  "name": "my-node-app",
+  "name": "devops-lab",
   "version": "1.0.0",
-  "main": "server.js",
+  "private": true,
+  "description": "DevOps lab: Node.js demo app + monitoring stack",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "lint": "eslint . || true",
-    "test": "node test.js || true"
+    "start:app": "node my-node-app/server.js",
+    "start:dev": "cd my-node-app && nodemon server.js",
+    "lint": "cd my-node-app && npm run lint || true",
+    "test:health": "cd my-node-app && node test.js || true",
+    "compose:up": "docker-compose up --build",
+    "compose:down": "docker-compose down --volumes"
   },
-  "dependencies": {
-    "express": "^4.22.1",
-    "prom-client": "^14.0.0"
-  },
-  "devDependencies": {
-    "eslint": "^8.50.0",
-    "nodemon": "^3.1.11"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "author": "voynovscloud",
+  "license": "MIT"
 }

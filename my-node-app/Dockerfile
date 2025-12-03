@@ -15,7 +15,11 @@ ENV NODE_ENV=production
 
 COPY --from=builder /app /app
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# create a non-root user and give ownership of /app to that user
+RUN addgroup -S appgroup \
+ && adduser -S appuser -G appgroup \
+ && chown -R appuser:appgroup /app
+
 USER appuser
 
 EXPOSE 3000

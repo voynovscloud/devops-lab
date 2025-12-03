@@ -8,7 +8,7 @@ services:
       - devnet
     restart: always
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O-", "http://localhost:3000/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/health',(r)=>{if(r.statusCode!==200)process.exit(1)}).on('error',()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
