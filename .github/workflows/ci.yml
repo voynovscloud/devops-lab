@@ -40,13 +40,14 @@ jobs:
       - name: Build Docker image
         run: docker build -t devops-lab-nodeapp:latest ./my-node-app
 
-      - name: Run Trivy vulnerability scan
-        # fallback: pin to an older, widely released Trivy Action tag to avoid resolution issues
-        uses: aquasecurity/trivy-action@v0.12.0
-        with:
-          image-ref: devops-lab-nodeapp:latest
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+      - name: Run Trivy vulnerability scan (Docker)
+        # Run Trivy directly in Docker to avoid resolving a third-party GitHub Action
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${{ github.workspace }}:/workspace" \
+            aquasecurity/trivy:0.33.1 \
+            image --format sarif --output /workspace/trivy-results.sarif devops-lab-nodeapp:latest
 
       - name: Check SARIF file exists
         id: check_sarif
