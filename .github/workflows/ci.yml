@@ -29,6 +29,13 @@ jobs:
         working-directory: my-node-app
         run: npm ci --prefer-offline --no-audit
 
+      - name: Start app (background)
+        working-directory: my-node-app
+        run: |
+          nohup npm start > server.log 2>&1 &
+          echo $! > .app.pid
+          sleep 2
+
       - name: Run lint
         working-directory: my-node-app
         run: npm run lint
@@ -36,6 +43,15 @@ jobs:
       - name: Run tests
         working-directory: my-node-app
         run: npm test
+
+      - name: Stop app
+        working-directory: my-node-app
+        if: always()
+        run: |
+          if [ -f .app.pid ]; then
+            kill "$(cat .app.pid)" || true
+            rm -f .app.pid
+          fi
 
       - name: Build Docker image
         run: docker build -t devops-lab-nodeapp:latest ./my-node-app
