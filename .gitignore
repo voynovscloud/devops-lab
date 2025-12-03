@@ -1,0 +1,13 @@
+node_modules/
+my-node-app/node_modules/
+.env
+.DS_Store
+*.log
+/.vscode
+.idea
+*.swp
+.Jenkinsfile.swp
+prometheus_data/
+grafana_data/
+portainer_data/
+jenkins_home/
