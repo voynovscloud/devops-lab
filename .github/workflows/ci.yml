@@ -41,8 +41,8 @@ jobs:
         run: docker build -t devops-lab-nodeapp:latest ./my-node-app
 
       - name: Run Trivy vulnerability scan
-        # pin to a released Trivy Action version (replace with newer release if available)
-        uses: aquasecurity/trivy-action@v0.19.0
+        # pin to a released Trivy Action version (use a recent release)
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: devops-lab-nodeapp:latest
           format: 'sarif'
