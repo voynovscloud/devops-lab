@@ -1,0 +1,27 @@
+{
+  "name": "my-node-app",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "lint": "eslint .",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "express": "^4.22.1",
+    "prom-client": "^14.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.50.0",
+    "nodemon": "^3.1.11"
+  },
+  "keywords": ["devops", "prometheus", "metrics", "docker"],
+  "author": "voynovscloud",
+  "license": "MIT",
+  "description": "Node.js app with Prometheus metrics for DevOps lab",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/voynovscloud/devops-lab.git"
+  }
+}

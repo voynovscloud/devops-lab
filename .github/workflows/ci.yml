@@ -16,6 +16,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: my-node-app/package-lock.json
 
       - name: Install dependencies (app)
         working-directory: my-node-app
@@ -23,12 +25,25 @@ jobs:
 
       - name: Run lint
         working-directory: my-node-app
-        run: npm run lint || true
+        run: npm run lint
 
       - name: Run tests
         working-directory: my-node-app
-        run: npm test || true
+        run: npm test
 
       - name: Build Docker image
         run: |
           docker build -t devops-lab-nodeapp:latest ./my-node-app
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: devops-lab-nodeapp:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
