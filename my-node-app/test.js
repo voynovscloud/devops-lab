@@ -8,18 +8,30 @@ const options = {
   timeout: 2000
 };
 
-const req = http.request(options, res => {
-  if (res.statusCode === 200) {
-    console.log('OK: /health responded 200');
-    process.exit(0);
-  } else {
-    console.error('FAIL: /health returned', res.statusCode);
-    process.exit(2);
-  }
+const req = http.request(options, (res) => {
+  let data = '';
+  res.on('data', (chunk) => {
+    data += chunk;
+  });
+  res.on('end', () => {
+    if (res.statusCode === 200) {
+      console.log('✓ Health check passed:', data);
+      process.exit(0);
+    } else {
+      console.error('✗ Health check failed:', res.statusCode);
+      process.exit(1);
+    }
+  });
 });
 
-req.on('error', err => {
-  console.error('ERROR: Could not reach server:', err.message);
+req.on('error', (err) => {
+  console.error('✗ Health check error:', err.message);
+  process.exit(1);
+});
+
+req.on('timeout', () => {
+  console.error('✗ Health check timeout');
+  req.destroy();
   process.exit(1);
 });
 

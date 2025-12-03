@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
     steps:
       - uses: actions/checkout@v4
 
@@ -21,7 +23,7 @@ jobs:
 
       - name: Install dependencies (app)
         working-directory: my-node-app
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run lint
         working-directory: my-node-app
@@ -32,8 +34,7 @@ jobs:
         run: npm test
 
       - name: Build Docker image
-        run: |
-          docker build -t devops-lab-nodeapp:latest ./my-node-app
+        run: docker build -t devops-lab-nodeapp:latest ./my-node-app
 
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
@@ -47,3 +48,4 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+          wait-for-processing: false
