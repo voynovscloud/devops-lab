@@ -1,7 +1,5 @@
 pipeline {
-    agent {
-        docker { image 'node:18' }
-    }
+    agent any
 
     environment {
         DOCKER_IMAGE = "devops-lab-nodeapp:latest"
@@ -17,17 +15,13 @@ pipeline {
 
         stage('Install dependencies') {
             steps {
-                dir("${APP_DIR}") {
-                    sh 'npm ci'
-                }
+                sh 'docker run --rm -v $PWD:/app -w /app node:18 npm ci'
             }
         }
 
         stage('Test') {
             steps {
-                dir("${APP_DIR}") {
-                    sh 'npm test || true'
-                }
+                sh 'docker run --rm -v $PWD:/app -w /app node:18 npm test || true'
             }
         }
 
