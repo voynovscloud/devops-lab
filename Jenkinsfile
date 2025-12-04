@@ -2,30 +2,27 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
+        stage('Install deps in Docker') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
             }
-        }
-
-        stage('Install dependencies') {
             steps {
                 dir('my-node-app') {
                     sh 'npm ci'
-                    sh 'npm test || true'
                 }
             }
         }
 
         stage('Build Docker image') {
             steps {
-                dir('my-node-app') {
-                    sh 'docker build -t devops-lab-nodeapp:latest .'
-                }
+                sh 'docker build -t devops-lab-nodeapp:latest ./my-node-app'
             }
         }
 
-        stage('Run Docker container') {
+        stage('Run container') {
             steps {
                 sh 'docker rm -f nodeapp || true'
                 sh 'docker run -d --name nodeapp -p 3000:3000 devops-lab-nodeapp:latest'
@@ -34,11 +31,11 @@ pipeline {
     }
 
     post {
-        success {
-            echo 'Pipeline finished successfully!'
-        }
         failure {
-            echo 'Pipeline failed. Check logs.'
+            echo 'Pipeline failed.'
+        }
+        success {
+            echo 'Pipeline succeeded!'
         }
     }
 }
