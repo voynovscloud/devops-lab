@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "devops-lab-nodeapp:latest"
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -12,38 +8,37 @@ pipeline {
             }
         }
 
-        stage('Build Docker image') {
+        stage('Install dependencies') {
             steps {
-                echo "Building Docker image ${env.IMAGE_NAME}"
-                sh "docker build -t ${env.IMAGE_NAME} ./my-node-app"
+                dir('my-node-app') {
+                    sh 'npm ci'
+                    sh 'npm test || true'
+                }
             }
         }
 
-        stage('Optional: run container smoke test') {
+        stage('Build Docker image') {
             steps {
-                echo "Running quick smoke test (container should start and exit quickly)"
-                // Запускаме контейнера в отделен namespace и проверяваме че образа стартира
-                sh '''
-                  set -e
-                  cid=$(docker create ${IMAGE_NAME})
-                  docker start $cid
-                  sleep 2
-                  # опционално: docker logs $cid
-                  docker rm -f $cid || true
-                '''
+                dir('my-node-app') {
+                    sh 'docker build -t devops-lab-nodeapp:latest .'
+                }
             }
-            when {
-                expression { return true } // сменяш на false ако не искаш тест
+        }
+
+        stage('Run Docker container') {
+            steps {
+                sh 'docker rm -f nodeapp || true'
+                sh 'docker run -d --name nodeapp -p 3000:3000 devops-lab-nodeapp:latest'
             }
         }
     }
 
     post {
         success {
-            echo "Build finished successfully."
+            echo 'Pipeline finished successfully!'
         }
         failure {
-            echo "Build failed."
+            echo 'Pipeline failed. Check logs.'
         }
     }
 }
