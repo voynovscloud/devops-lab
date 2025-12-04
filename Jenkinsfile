@@ -15,13 +15,13 @@ pipeline {
 
         stage('Install dependencies') {
             steps {
-                sh 'docker run --rm -v $PWD:/app -w /app node:18 npm ci'
+                sh 'docker run --rm -v $PWD:/app -w /app/my-node-app node:18 npm install'
             }
         }
 
         stage('Test') {
             steps {
-                sh 'docker run --rm -v $PWD:/app -w /app node:18 npm test || true'
+                sh 'docker run --rm -v $PWD:/app -w /app/my-node-app node:18 npm test || true'
             }
         }
 
@@ -31,7 +31,7 @@ pipeline {
             }
         }
 
-        stage('Run container (smoke test)') {
+        stage('Smoke test') {
             steps {
                 sh """
                 docker run --rm -d --name nodeapp-test -p 3000:3000 ${DOCKER_IMAGE}
@@ -44,11 +44,7 @@ pipeline {
     }
 
     post {
-        success {
-            echo "✅ Pipeline finished successfully!"
-        }
-        failure {
-            echo "❌ Pipeline failed. Check logs!"
-        }
+        success { echo "✅ Pipeline finished successfully!" }
+        failure { echo "❌ Pipeline failed. Check logs!" }
     }
 }
