@@ -1,63 +1,60 @@
 pipeline {
-agent {
-docker { image 'node:18' } // Node.js контейнер
-}
-
-```
-environment {
-    DOCKER_IMAGE = "devops-lab-nodeapp:latest"
-    APP_DIR = "my-node-app"
-}
-
-stages {
-    stage('Checkout') {
-        steps {
-            git url: 'https://github.com/voynovscloud/devops-lab', branch: 'main'
-        }
+    agent {
+        docker { image 'node:18' }
     }
 
-    stage('Install dependencies') {
-        steps {
-            dir("${APP_DIR}") {
-                sh 'npm ci'
+    environment {
+        DOCKER_IMAGE = "devops-lab-nodeapp:latest"
+        APP_DIR = "my-node-app"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/voynovscloud/devops-lab', branch: 'main'
+            }
+        }
+
+        stage('Install dependencies') {
+            steps {
+                dir("${APP_DIR}") {
+                    sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir("${APP_DIR}") {
+                    sh 'npm test || true'
+                }
+            }
+        }
+
+        stage('Build Docker image') {
+            steps {
+                sh "docker build -t ${DOCKER_IMAGE} ./my-node-app"
+            }
+        }
+
+        stage('Run container (smoke test)') {
+            steps {
+                sh """
+                docker run --rm -d --name nodeapp-test -p 3000:3000 ${DOCKER_IMAGE}
+                sleep 5
+                curl -f http://localhost:3000/ || exit 1
+                docker stop nodeapp-test
+                """
             }
         }
     }
 
-    stage('Test') {
-        steps {
-            dir("${APP_DIR}") {
-                sh 'npm test || true'
-            }
+    post {
+        success {
+            echo "✅ Pipeline finished successfully!"
+        }
+        failure {
+            echo "❌ Pipeline failed. Check logs!"
         }
     }
-
-    stage('Build Docker image') {
-        steps {
-            sh "docker build -t ${DOCKER_IMAGE} ./my-node-app"
-        }
-    }
-
-    stage('Run container (smoke test)') {
-        steps {
-            sh """
-            docker run --rm -d --name nodeapp-test -p 3000:3000 ${DOCKER_IMAGE}
-            sleep 5
-            curl -f http://localhost:3000/ || exit 1
-            docker stop nodeapp-test
-            """
-        }
-    }
-}
-
-post {
-    success {
-        echo "✅ Pipeline finished successfully!"
-    }
-    failure {
-        echo "❌ Pipeline failed. Check logs!"
-    }
-}
-```
-
 }
