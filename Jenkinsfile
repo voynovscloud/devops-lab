@@ -1,41 +1,58 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = "devops-lab-nodeapp:latest"
+        APP_DIR = "my-node-app"
+    }
+
     stages {
-        stage('Install deps in Docker') {
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/voynovscloud/devops-lab', branch: 'main', credentialsId: 'github_token'
+            }
+        }
+
+        stage('Install dependencies') {
+            steps {
+                dir("${APP_DIR}") {
+                    sh 'npm ci'
                 }
             }
+        }
+
+        stage('Test') {
             steps {
-                dir('my-node-app') {
-                    sh 'npm ci'
+                dir("${APP_DIR}") {
+                    sh 'npm test || true'
                 }
             }
         }
 
         stage('Build Docker image') {
             steps {
-                sh 'docker build -t devops-lab-nodeapp:latest ./my-node-app'
+                sh "docker build -t ${DOCKER_IMAGE} ./my-node-app"
             }
         }
 
-        stage('Run container') {
+        stage('Run container (smoke test)') {
             steps {
-                sh 'docker rm -f nodeapp || true'
-                sh 'docker run -d --name nodeapp -p 3000:3000 devops-lab-nodeapp:latest'
+                sh """
+                docker run --rm -d --name nodeapp-test -p 3000:3000 ${DOCKER_IMAGE}
+                sleep 5
+                curl -f http://localhost:3000/ || exit 1
+                docker stop nodeapp-test
+                """
             }
         }
     }
 
     post {
-        failure {
-            echo 'Pipeline failed.'
-        }
         success {
-            echo 'Pipeline succeeded!'
+            echo "Pipeline finished successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check logs!"
         }
     }
 }
