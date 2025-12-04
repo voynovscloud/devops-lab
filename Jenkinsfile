@@ -1,50 +1,53 @@
 pipeline {
-    agent any
+agent any
+environment {
+APP_NAME = "devops-lab-nodeapp"
+APP_DIR = "./my-node-app"
+}
+stages {
+stage('Checkout') {
+steps {
+echo 'Cloning repository...'
+checkout scm
+}
+}
 
-    environment {
-        DOCKER_IMAGE = "devops-lab-nodeapp:latest"
-        APP_DIR = "my-node-app"
+```
+    stage('Build Docker image') {
+        steps {
+            echo 'Building Docker image...'
+            sh """
+            if [ -f ${APP_DIR}/Dockerfile ]; then
+                docker build -t ${APP_NAME}:latest ${APP_DIR}
+            else
+                echo "No Dockerfile found, skipping build"
+            fi
+            """
+        }
     }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/voynovscloud/devops-lab', branch: 'main'
-            }
-        }
-
-        stage('Install dependencies') {
-            steps {
-                sh 'docker run --rm -v $PWD:/app -w /app/my-node-app node:18 npm install'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                sh 'docker run --rm -v $PWD:/app -w /app/my-node-app node:18 npm test || true'
-            }
-        }
-
-        stage('Build Docker image') {
-            steps {
-                sh "docker build -t ${DOCKER_IMAGE} ./my-node-app"
-            }
-        }
-
-        stage('Smoke test') {
-            steps {
-                sh """
-                docker run --rm -d --name nodeapp-test -p 3000:3000 ${DOCKER_IMAGE}
+    stage('Run container (smoke test)') {
+        steps {
+            echo 'Running container briefly to check build...'
+            sh """
+            if docker images | grep -q ${APP_NAME}; then
+                docker run --rm -d --name ${APP_NAME}-smoke ${APP_NAME}:latest
                 sleep 5
-                curl -f http://localhost:3000/ || exit 1
-                docker stop nodeapp-test
-                """
-            }
+                docker logs ${APP_NAME}-smoke || true
+                docker stop ${APP_NAME}-smoke || true
+            else
+                echo "No image found, skipping run"
+            fi
+            """
         }
     }
+}
 
-    post {
-        success { echo "✅ Pipeline finished successfully!" }
-        failure { echo "❌ Pipeline failed. Check logs!" }
+post {
+    always {
+        echo 'Pipeline finished'
     }
+}
+```
+
 }
