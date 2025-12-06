@@ -116,12 +116,46 @@ pipeline {
             echo 'Cleaning up...'
             sh 'docker system prune -f || true'
             archiveArtifacts artifacts: 'trivy-report.json', allowEmptyArchive: true
+            
+            // Summary report
+            script {
+                def duration = currentBuild.durationString.replace(' and counting', '')
+                echo """
+                =====================================
+                BUILD SUMMARY
+                =====================================
+                Status: ${currentBuild.currentResult}
+                Duration: ${duration}
+                Image: ${IMAGE_NAME}:${BUILD_TAG}
+                Environment: ${params.ENVIRONMENT}
+                Commit: ${env.GIT_COMMIT_SHORT}
+                Build: #${BUILD_NUMBER}
+                =====================================
+                """
+            }
         }
         success {
-            echo "✓ Pipeline succeeded! Image: ${IMAGE_NAME}:${BUILD_TAG}"
+            echo """
+            ✅ PIPELINE SUCCEEDED!
+            
+            Next Steps:
+            1. View image: docker pull ${IMAGE_NAME}:${BUILD_TAG}
+            2. Run locally: docker run -p 3000:3000 ${IMAGE_NAME}:${BUILD_TAG}
+            3. Check security: Review trivy-report.json artifact
+            ${params.PUSH_IMAGE ? "4. Image pushed to GHCR ✓" : "4. Set PUSH_IMAGE=true to publish"}
+            ${params.ENVIRONMENT != 'dev' && params.PUSH_IMAGE ? "5. K8s deployment updated ✓" : ""}
+            """
         }
         failure {
-            echo '✗ Pipeline failed'
+            echo """
+            ❌ PIPELINE FAILED
+            
+            Troubleshooting:
+            1. Check console output above for errors
+            2. Review stage that failed
+            3. Check Docker logs: docker logs <container-id>
+            4. Verify credentials if push failed
+            """
         }
     }
 }
