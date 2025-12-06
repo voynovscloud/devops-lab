@@ -31,6 +31,12 @@ pipeline {
             steps {
                 echo 'Installing Node.js dependencies...'
                 sh """
+                    echo "Current directory: \$(pwd)"
+                    echo "Listing workspace contents:"
+                    ls -la
+                    echo "Checking my-node-app directory:"
+                    ls -la my-node-app/ || echo "Directory not found!"
+                    echo "Running npm ci in Docker..."
                     docker run --rm -v \$(pwd)/my-node-app:/app -w /app node:18-alpine npm ci --prefer-offline --no-audit
                 """
             }
