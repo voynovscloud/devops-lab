@@ -43,13 +43,16 @@ pipeline {
             steps {
                 echo 'Running tests with built image...'
                 sh """
+                    # Use a random high port to avoid conflicts
+                    TEST_PORT=\$((3100 + BUILD_NUMBER))
+                    
                     # Start the app from the built image
-                    docker run --rm -d --name test-app-${BUILD_NUMBER} -p 3000:3000 ${APP_NAME}:latest
+                    docker run --rm -d --name test-app-${BUILD_NUMBER} -p \${TEST_PORT}:3000 ${APP_NAME}:latest
                     
                     # Wait for app to be ready
                     for i in {1..30}; do
-                        if curl -sf http://127.0.0.1:3000/health >/dev/null 2>&1; then
-                            echo "App is ready"
+                        if curl -sf http://127.0.0.1:\${TEST_PORT}/health >/dev/null 2>&1; then
+                            echo "App is ready on port \${TEST_PORT}"
                             break
                         fi
                         echo "Waiting for app... (\$i/30)"
@@ -57,8 +60,8 @@ pipeline {
                     done
                     
                     # Run a simple health check test
-                    curl -f http://127.0.0.1:3000/health || exit 1
-                    curl -f http://127.0.0.1:3000/metrics || exit 1
+                    curl -f http://127.0.0.1:\${TEST_PORT}/health || exit 1
+                    curl -f http://127.0.0.1:\${TEST_PORT}/metrics || exit 1
                     echo "✓ Health and metrics endpoints working"
                     
                     # Cleanup
