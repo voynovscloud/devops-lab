@@ -1,125 +1,340 @@
 # DevOps Lab
 
-[![GitHub Actions CI](https://github.com/voynovscloud/devops-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/voynovscloud/devops-lab/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-18-green)](https://nodejs.org/)
-[![Docker](https://img.shields.io/badge/Docker-Supported-blue)](https://www.docker.com/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-blue)](https://kubernetes.io/)
+Complete Kubernetes-based DevOps environment with CI/CD, monitoring, and observability.
 
-🚀 **Production-Ready DevOps Pipeline in Minutes** — Complete CI/CD setup with Jenkins, GitHub Actions, Kubernetes, and monitoring. Clone and deploy.
+## 🎯 Overview
 
-A professional DevOps lab featuring Node.js app, Prometheus, Grafana, Jenkins, and complete CI/CD pipelines.
+A simplified, production-ready setup featuring:
+- **Node.js Application** with health checks and Prometheus metrics
+- **Jenkins CI/CD** with automated build, test, scan, and deploy pipeline
+- **Prometheus** for metrics collection and monitoring
+- **Grafana** for visualization and dashboards
+- **Kubernetes** deployment with proper resource management
 
-## Contents
-- `my-node-app/` — Node.js example app exposing Prometheus metrics and health endpoints
-- `docker-compose.yml` — Local stack: node app, Prometheus, Grafana, Jenkins, cAdvisor, Portainer
-- `prometheus.yml` — Prometheus scrape configuration
+---
 
-## Quick start
+## 📁 Repository Structure
 
-Prerequisites: `docker` and `docker-compose` installed.
+```
+devops-lab/
+├── my-node-app/              # Node.js application source
+│   ├── server.js             # Express server with /health and /metrics
+│   ├── metrics.js            # Prometheus metrics implementation
+│   ├── test.js               # Application tests
+│   ├── Dockerfile            # Multi-stage Docker build
+│   └── package.json          # Dependencies
+├── k8s/                      # Kubernetes manifests
+│   ├── node-app/             # Node app deployment
+│   │   ├── namespace.yaml
+│   │   ├── configmap.yaml
+│   │   ├── deployment.yaml   # 3 replicas with health probes
+│   │   ├── service.yaml
+│   │   └── ingress.yaml
+│   ├── prometheus/           # Prometheus monitoring
+│   │   ├── namespace.yaml
+│   │   ├── configmap.yaml    # Auto-discovery config
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   ├── pvc.yaml          # 10Gi persistent storage
+│   │   └── rbac.yaml         # Service discovery permissions
+│   ├── grafana/              # Grafana visualization
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   ├── pvc.yaml          # 5Gi persistent storage
+│   │   ├── configmap.yaml    # Prometheus datasource
+│   │   └── secret.yaml       # Admin credentials
+│   └── jenkins/              # Jenkins CI/CD
+│       ├── namespace.yaml
+│       ├── deployment.yaml   # With Docker socket
+│       ├── service.yaml
+│       ├── pvc.yaml          # 20Gi persistent storage
+│       └── rbac.yaml         # Kubernetes API access
+├── Jenkinsfile               # CI/CD pipeline definition
+├── deploy-k8s.sh             # Automated deployment script
+├── check-status.sh           # Quick status checker
+├── fix-nodeapp.sh            # Rebuild and deploy node app
+└── DEPLOYMENT_SUMMARY.md     # Detailed deployment guide
 
-Run the whole stack:
-
-```bash
-docker-compose up --build
 ```
 
-## Services
-- Node app: http://localhost:3000/ (metrics: `/metrics`, health: `/health`)
-- Prometheus: http://localhost:9090/
-- Grafana: http://localhost:3001/
-- Jenkins: http://localhost:8081/
+---
 
-## Testing the app
+## 🚀 Quick Start
 
-```bash
-curl http://localhost:3000/health
-curl http://localhost:3000/metrics
-```
+### Prerequisites
 
-## Development
+- **Minikube** or **K3s** installed
+- **Docker** installed
+- **kubectl** available (or use `minikube kubectl --`)
 
-Open `my-node-app` and use `npm install` then run `npm run dev` to start with auto-reload.
+### Deploy Everything
 
 ```bash
-cd my-node-app
-npm install
-npm run dev
+# Clone the repository
+git clone https://github.com/voynovscloud/devops-lab.git
+cd devops-lab
+
+# Run the deployment script
+./deploy-k8s.sh
 ```
 
-Available scripts:
-- `npm start` — Start production server
-- `npm run dev` — Start with auto-reload (nodemon)
-- `npm run lint` — Run ESLint code quality check
-- `npm run build` — Prepare build (currently no-op)
-- `npm test` — Health check test against running server
+The script will:
+1. Detect/start Minikube or K3s
+2. Apply all Kubernetes manifests
+3. Fix Grafana permissions
+4. Wait for all pods to be ready
+5. Display access instructions
 
-## Features
+---
 
-✅ **Complete CI/CD**
-- GitHub Actions workflow with automated testing and security scanning
-- Jenkins pipeline with multi-stage builds and K8s deployment
-- Container image publishing to GHCR
+## 🌐 Access Services
 
-✅ **Kubernetes Ready**
-- Production manifests with resource limits and health probes
-- Multi-environment support (dev/staging/prod)
-- Ingress configuration with TLS
+### Port Forward to Local Machine
 
-✅ **Monitoring Stack**
-- Prometheus metrics collection
-- Grafana dashboards
-- Container monitoring with cAdvisor
+```bash
+# Node.js App
+kubectl port-forward -n devops-lab svc/node-app 8080:80
+# Access at: http://localhost:8080
 
-✅ **Production Hardened**
-- Multi-stage Docker builds with non-root user
+# Jenkins
+kubectl port-forward -n jenkins svc/jenkins 8081:8080
+# Access at: http://localhost:8081
+
+# Grafana (admin/admin)
+kubectl port-forward -n monitoring svc/grafana 3000:3000
+# Access at: http://localhost:3000
+
+# Prometheus
+kubectl port-forward -n monitoring svc/prometheus 9090:9090
+# Access at: http://localhost:9090
+```
+
+### Get Jenkins Admin Password
+
+```bash
+kubectl exec -n jenkins deployment/jenkins -- cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+---
+
+## 🔧 Application Endpoints
+
+### Node.js App
+
+- **Root**: `http://localhost:8080/` - Welcome message
+- **Health**: `http://localhost:8080/health` - Health check endpoint
+- **Metrics**: `http://localhost:8080/metrics` - Prometheus metrics
+
+### Test the App
+
+```bash
+curl http://localhost:8080/health
+curl http://localhost:8080/metrics
+```
+
+---
+
+## 🔄 CI/CD Pipeline
+
+The Jenkins pipeline (`Jenkinsfile`) performs:
+
+1. **Checkout** - Pull code from Git
+2. **Build** - Build Docker image with tags
+3. **Test** - Run application tests with health checks
+4. **Security Scan** - Trivy vulnerability scanning
+5. **Push** - Push to GitHub Container Registry (optional)
+6. **Deploy** - Deploy to Kubernetes (optional)
+
+### Pipeline Features
+
+- Dynamic port allocation for testing
+- Parallel stage execution
 - Security scanning with Trivy
-- Graceful shutdown and error handling
-- Health checks and readiness probes
+- Graceful credential handling
+- Build summary reporting
 
-## Documentation
+---
 
-- 📖 [Architecture](docs/ARCHITECTURE.md) — System design and component overview
-- 🚀 [Deployment Guide](docs/DEPLOY.md) — Deployment instructions and options
-- 🔧 [Jenkins Setup](docs/JENKINS_SETUP.md) — Complete Jenkins CI/CD configuration
-- 💰 [Monetization Strategy](docs/MONETIZATION.md) — Revenue streams and go-to-market plan
+## 📊 Monitoring Setup
 
-## CI/CD Pipelines
+### Prometheus
 
-### GitHub Actions
-Two workflows included:
-- **CI Pipeline** (`.github/workflows/ci.yml`) — Lint, test, build, security scan on every push
-- **Publish Pipeline** (`.github/workflows/publish.yml`) — Build and push images to GHCR on tags/main
+- **Auto-discovers** pods in `devops-lab` namespace
+- **Scrapes metrics** from pods with annotations:
+  ```yaml
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3000"
+  prometheus.io/path: "/metrics"
+  ```
+- **Persistent storage** via 10Gi PVC
 
-### Jenkins
-Production pipeline (`Jenkinsfile`) includes:
-- Multi-environment support (dev/staging/prod)
-- Automated testing with health checks
-- Docker image building and tagging
-- Security scanning with Trivy
-- Push to GitHub Container Registry
-- Kubernetes deployment
+### Grafana
 
-See [docs/JENKINS_SETUP.md](docs/JENKINS_SETUP.md) for complete setup guide.
+- **Pre-configured** Prometheus datasource
+- **Default credentials**: admin / admin
+- **Persistent dashboards** via 5Gi PVC
 
-## Kubernetes Deployment
+---
 
-Deploy to K8s/K3s:
+## 🛠️ Useful Commands
+
+### Check Status
 
 ```bash
-kubectl apply -f k8s/deployment.yaml
+# Run status check script
+./check-status.sh
+
+# Or manually
+kubectl get pods -A
+kubectl get svc -A
+kubectl get pvc -A
+```
+
+### View Logs
+
+```bash
+# Node app
+kubectl logs -f deployment/node-app -n devops-lab
+
+# Jenkins
+kubectl logs -f deployment/jenkins -n jenkins
+
+# Grafana
+kubectl logs -f deployment/grafana -n monitoring
+
+# Prometheus
+kubectl logs -f deployment/prometheus -n monitoring
+```
+
+### Scale Application
+
+```bash
+# Scale node app to 5 replicas
+kubectl scale deployment/node-app -n devops-lab --replicas=5
+
+# Check status
 kubectl get pods -n devops-lab
-kubectl port-forward -n devops-lab svc/devops-lab-nodeapp 8080:80
 ```
 
-## Contributing
+### Restart Services
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+```bash
+kubectl rollout restart deployment/node-app -n devops-lab
+kubectl rollout restart deployment/jenkins -n jenkins
+kubectl rollout restart deployment/grafana -n monitoring
+kubectl rollout restart deployment/prometheus -n monitoring
+```
 
-## License
+### Rebuild Node App
 
-This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
+```bash
+# Use the helper script
+./fix-nodeapp.sh
 
-## Notes
-- This repo is intended for learning and lab environments. Review secrets and ports before using in production.
+# Or manually
+docker build -t devops-lab-nodeapp:latest ./my-node-app/
+minikube image load devops-lab-nodeapp:latest
+kubectl rollout restart deployment/node-app -n devops-lab
+```
+
+---
+
+## 🔐 Security
+
+- **Non-root containers** where possible
+- **Read-only root filesystem** for node app
+- **Security scanning** with Trivy in CI/CD
+- **RBAC configured** for service accounts
+- **Network policies** ready (add as needed)
+
+---
+
+## 📝 Configuration
+
+### Node App Configuration
+
+Edit `k8s/node-app/configmap.yaml`:
+```yaml
+NODE_ENV: production
+PORT: "3000"
+```
+
+### Prometheus Targets
+
+Edit `k8s/prometheus/configmap.yaml` to add more scrape targets.
+
+### Grafana Datasources
+
+Pre-configured in `k8s/grafana/configmap.yaml` with Prometheus endpoint.
+
+---
+
+## 🐛 Troubleshooting
+
+### Minikube Not Starting
+
+```bash
+minikube delete
+minikube start --cpus=4 --memory=8192 --disk-size=20g
+```
+
+### Pods Not Running
+
+```bash
+# Check pod status
+kubectl describe pod <pod-name> -n <namespace>
+
+# Check logs
+kubectl logs <pod-name> -n <namespace>
+```
+
+### Image Pull Errors
+
+For local development, the node app uses `imagePullPolicy: Never` and loads images into Minikube:
+```bash
+./fix-nodeapp.sh
+```
+
+For production, update `k8s/node-app/deployment.yaml`:
+- Change image to GHCR: `ghcr.io/voynovscloud/devops-lab-nodeapp:latest`
+- Change `imagePullPolicy: Never` to `imagePullPolicy: Always`
+
+---
+
+## 📚 Additional Resources
+
+- **[DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md)** - Detailed deployment guide with troubleshooting
+- **[LICENSE](LICENSE)** - MIT License
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details
+
+---
+
+## ✨ Features Highlight
+
+✅ **Complete CI/CD** - Jenkins pipeline with all stages  
+✅ **Monitoring Stack** - Prometheus + Grafana pre-configured  
+✅ **Kubernetes Native** - Proper manifests with health checks  
+✅ **Persistent Storage** - All stateful services use PVCs  
+✅ **Auto-Discovery** - Prometheus auto-discovers services  
+✅ **Security Scanning** - Trivy integration in pipeline  
+✅ **Production Ready** - Resource limits, health probes, RBAC  
+✅ **Easy Deployment** - One script deploys everything  
+
+---
+
+**Ready to deploy? Run `./deploy-k8s.sh` and you're live! 🚀**
