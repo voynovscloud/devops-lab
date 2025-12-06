@@ -89,24 +89,42 @@ The script will:
 
 ## 🌐 Access Services
 
-### Port Forward to Local Machine
+### Option 1: Ingress (Recommended)
+
+Ingress is configured for direct access without port-forwarding:
+
+1. **Add hosts entries** (one-time setup):
+```bash
+sudo bash -c "cat >> /etc/hosts << HOSTS
+$(minikube ip) app.local
+$(minikube ip) jenkins.local
+$(minikube ip) grafana.local
+$(minikube ip) prometheus.local
+HOSTS"
+```
+
+2. **Access services directly**:
+- Node App: http://app.local
+- Jenkins: http://jenkins.local
+- Grafana: http://grafana.local (admin/admin)
+- Prometheus: http://prometheus.local
+
+See [INGRESS_ACCESS.md](INGRESS_ACCESS.md) for detailed instructions.
+
+### Option 2: Port Forward (Alternative)
 
 ```bash
 # Node.js App
 kubectl port-forward -n devops-lab svc/node-app 8080:80
-# Access at: http://localhost:8080
 
 # Jenkins
 kubectl port-forward -n jenkins svc/jenkins 8081:8080
-# Access at: http://localhost:8081
 
 # Grafana (admin/admin)
 kubectl port-forward -n monitoring svc/grafana 3000:3000
-# Access at: http://localhost:3000
 
 # Prometheus
 kubectl port-forward -n monitoring svc/prometheus 9090:9090
-# Access at: http://localhost:9090
 ```
 
 ### Get Jenkins Admin Password
