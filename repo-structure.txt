@@ -1,0 +1,25 @@
+.
+├── DEPLOYMENT_SUMMARY.md
+├── Jenkinsfile
+├── LICENSE
+├── README.md
+├── check-status.sh
+├── deploy-k8s.sh
+├── fix-nodeapp.sh
+├── k8s
+│   ├── README.md
+│   ├── grafana
+│   ├── jenkins
+│   ├── node-app
+│   └── prometheus
+├── my-node-app
+│   ├── Dockerfile
+│   ├── metrics.js
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── server.js
+│   ├── server.log
+│   └── test.js
+└── repo-structure.txt
+
+7 directories, 16 files
