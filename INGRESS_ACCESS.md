@@ -6,7 +6,6 @@ Add these entries to your `/etc/hosts` file:
 
 ```bash
 192.168.49.2 app.local
-192.168.49.2 jenkins.local
 192.168.49.2 grafana.local
 192.168.49.2 prometheus.local
 ```
@@ -18,7 +17,6 @@ Run this command:
 ```bash
 sudo bash -c "cat >> /etc/hosts << HOSTS
 192.168.49.2 app.local
-192.168.49.2 jenkins.local
 192.168.49.2 grafana.local
 192.168.49.2 prometheus.local
 HOSTS"
@@ -26,12 +24,13 @@ HOSTS"
 
 ## Access Your Services
 
-Once hosts are configured, access your services directly:
-
+**Kubernetes Services (via Ingress):**
 - **Node App**: http://app.local
-- **Jenkins**: http://jenkins.local
 - **Grafana**: http://grafana.local (admin/admin)
 - **Prometheus**: http://prometheus.local
+
+**Jenkins (Docker):**
+- **Jenkins**: http://localhost:8081 (runs separately in Docker)
 
 ## Verify Ingress
 
@@ -58,5 +57,26 @@ If services are not accessible:
 
 To remove the hosts entries later:
 ```bash
-sudo sed -i.bak '/app.local\|jenkins.local\|grafana.local\|prometheus.local/d' /etc/hosts
+sudo sed -i.bak '/app.local\|grafana.local\|prometheus.local/d' /etc/hosts
+```
+
+## Jenkins Setup
+
+Jenkins runs separately in Docker for easier management:
+
+```bash
+# Start Jenkins
+./run-jenkins.sh
+
+# Get admin password
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
+# View logs
+docker logs -f jenkins
+
+# Stop Jenkins
+docker stop jenkins
+
+# Remove Jenkins
+docker stop jenkins && docker rm jenkins
 ```

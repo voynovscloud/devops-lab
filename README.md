@@ -6,9 +6,9 @@ Complete Kubernetes-based DevOps environment with CI/CD, monitoring, and observa
 
 Production-ready Kubernetes deployment featuring:
 - **Node.js Application** - 3 replicas with health checks and Prometheus metrics
-- **Jenkins CI/CD** - Automated build, test, scan, and deploy pipeline
 - **Prometheus** - Metrics collection and monitoring (10Gi storage)
 - **Grafana** - Visualization dashboards (5Gi storage)
+- **Jenkins CI/CD** - Runs in Docker for simplified management
 - **Nginx Ingress** - Direct service access without port-forwarding
 
 ---
@@ -37,19 +37,14 @@ devops-lab/
 │   │   ├── service.yaml
 │   │   ├── pvc.yaml          # 10Gi persistent storage
 │   │   └── rbac.yaml         # Service discovery permissions
-│   ├── grafana/              # Grafana visualization
-│   │   ├── deployment.yaml
-│   │   ├── service.yaml
-│   │   ├── pvc.yaml          # 5Gi persistent storage
-│   │   ├── configmap.yaml    # Prometheus datasource
-│   │   └── secret.yaml       # Admin credentials
-│   └── jenkins/              # Jenkins CI/CD
-│       ├── namespace.yaml
-│       ├── deployment.yaml   # With Docker socket
+│   └── grafana/              # Grafana visualization
+│       ├── deployment.yaml
 │       ├── service.yaml
-│       ├── pvc.yaml          # 20Gi persistent storage
-│       └── rbac.yaml         # Kubernetes API access
+│       ├── pvc.yaml          # 5Gi persistent storage
+│       ├── configmap.yaml    # Prometheus datasource
+│       └── secret.yaml       # Admin credentials
 ├── Jenkinsfile               # CI/CD pipeline definition
+├── run-jenkins.sh            # Start Jenkins in Docker
 ├── deploy-k8s.sh             # Automated deployment script
 ├── check-status.sh           # Quick status checker
 ├── fix-nodeapp.sh            # Rebuild and deploy node app
@@ -70,13 +65,18 @@ devops-lab/
 ### Deploy Everything
 
 ```bash
-# Clone and deploy
+# Clone repository
 git clone https://github.com/voynovscloud/devops-lab.git
 cd devops-lab
+
+# Deploy Kubernetes services
 ./deploy-k8s.sh
 
 # Setup Ingress
 ./setup-ingress.sh
+
+# Start Jenkins in Docker
+./run-jenkins.sh
 ```
 
 The deployment script will:
@@ -98,17 +98,16 @@ Ingress is configured for direct access without port-forwarding:
 ```bash
 sudo bash -c "cat >> /etc/hosts << HOSTS
 $(minikube ip) app.local
-$(minikube ip) jenkins.local
 $(minikube ip) grafana.local
 $(minikube ip) prometheus.local
 HOSTS"
 ```
 
-2. **Access services directly**:
+2. **Access services**:
 - Node App: http://app.local
-- Jenkins: http://jenkins.local
 - Grafana: http://grafana.local (admin/admin)
 - Prometheus: http://prometheus.local
+- Jenkins: http://localhost:8081 (runs in Docker)
 
 See [INGRESS_ACCESS.md](INGRESS_ACCESS.md) for detailed instructions.
 
@@ -117,9 +116,6 @@ See [INGRESS_ACCESS.md](INGRESS_ACCESS.md) for detailed instructions.
 ```bash
 # Node.js App
 kubectl port-forward -n devops-lab svc/node-app 8080:80
-
-# Jenkins
-kubectl port-forward -n jenkins svc/jenkins 8081:8080
 
 # Grafana (admin/admin)
 kubectl port-forward -n monitoring svc/grafana 3000:3000
@@ -131,7 +127,7 @@ kubectl port-forward -n monitoring svc/prometheus 9090:9090
 ### Get Jenkins Admin Password
 
 ```bash
-kubectl exec -n jenkins deployment/jenkins -- cat /var/jenkins_home/secrets/initialAdminPassword
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
 ---
@@ -215,8 +211,8 @@ kubectl get pvc -A
 # Node app
 kubectl logs -f deployment/node-app -n devops-lab
 
-# Jenkins
-kubectl logs -f deployment/jenkins -n jenkins
+# Jenkins (Docker)
+docker logs -f jenkins
 
 # Grafana
 kubectl logs -f deployment/grafana -n monitoring
@@ -239,7 +235,7 @@ kubectl get pods -n devops-lab
 
 ```bash
 kubectl rollout restart deployment/node-app -n devops-lab
-kubectl rollout restart deployment/jenkins -n jenkins
+docker restart jenkins  # Jenkins runs in Docker
 kubectl rollout restart deployment/grafana -n monitoring
 kubectl rollout restart deployment/prometheus -n monitoring
 ```
@@ -322,7 +318,7 @@ For production, update `k8s/node-app/deployment.yaml`:
 
 ## 📚 Additional Resources
 
-- **[DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md)** - Detailed deployment guide with troubleshooting
+- **[INGRESS_ACCESS.md](INGRESS_ACCESS.md)** - Ingress setup and configuration guide
 - **[LICENSE](LICENSE)** - MIT License
 
 ---
