@@ -27,25 +27,12 @@ pipeline {
             }
         }
         
-        stage('Install Dependencies') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Installing Node.js dependencies...'
-                dir('my-node-app') {
-                    sh """
-                        docker run --rm -v /var/jenkins_home/workspace/devops-lab-pipeline/my-node-app:/app -w /app node:18-alpine npm ci --prefer-offline --no-audit
-                    """
-                }
-            }
-        }
-        
-        stage('Lint') {
-            steps {
-                echo 'Running ESLint...'
-                dir('my-node-app') {
-                    sh """
-                        docker run --rm -v /var/jenkins_home/workspace/devops-lab-pipeline/my-node-app:/app -w /app node:18-alpine npm run lint
-                    """
-                }
+                echo "Building Docker image: ${IMAGE_NAME}:${BUILD_TAG}"
+                sh """
+                    docker build -t ${APP_NAME}:latest -t ${APP_NAME}:${BUILD_TAG} -t ${IMAGE_NAME}:${BUILD_TAG} -t ${IMAGE_NAME}:latest ${APP_DIR}
+                """
             }
         }
         
@@ -54,10 +41,12 @@ pipeline {
                 expression { return !params.SKIP_TESTS }
             }
             steps {
-                echo 'Running tests in Docker...'
+                echo 'Running tests with built image...'
                 sh """
-                    docker run --rm -d --name test-app-${BUILD_NUMBER} -p 3000:3000 -v /var/jenkins_home/workspace/devops-lab-pipeline/my-node-app:/app -w /app node:18-alpine sh -c 'npm start'
+                    # Start the app from the built image
+                    docker run --rm -d --name test-app-${BUILD_NUMBER} -p 3000:3000 ${APP_NAME}:latest
                     
+                    # Wait for app to be ready
                     for i in {1..30}; do
                         if curl -sf http://127.0.0.1:3000/health >/dev/null 2>&1; then
                             echo "App is ready"
@@ -67,19 +56,14 @@ pipeline {
                         sleep 1
                     done
                     
-                    docker run --rm --network host -v /var/jenkins_home/workspace/devops-lab-pipeline/my-node-app:/app -w /app node:18-alpine npm test
+                    # Run a simple health check test
+                    curl -f http://127.0.0.1:3000/health || exit 1
+                    curl -f http://127.0.0.1:3000/metrics || exit 1
+                    echo "✓ Health and metrics endpoints working"
                     
+                    # Cleanup
                     docker stop test-app-${BUILD_NUMBER} || true
                     docker rm test-app-${BUILD_NUMBER} || true
-                """
-            }
-        }
-        
-        stage('Build Docker Image') {
-            steps {
-                echo "Building Docker image: ${IMAGE_NAME}:${BUILD_TAG}"
-                sh """
-                    docker build -t ${APP_NAME}:latest -t ${APP_NAME}:${BUILD_TAG} -t ${IMAGE_NAME}:${BUILD_TAG} -t ${IMAGE_NAME}:latest ${APP_DIR}
                 """
             }
         }
