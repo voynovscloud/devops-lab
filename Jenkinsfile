@@ -30,24 +30,22 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installing Node.js dependencies...'
-                sh """
-                    echo "Current directory: \$(pwd)"
-                    echo "Listing workspace contents:"
-                    ls -la
-                    echo "Checking my-node-app directory:"
-                    ls -la my-node-app/ || echo "Directory not found!"
-                    echo "Running npm ci in Docker..."
-                    docker run --rm -v \$(pwd)/my-node-app:/app -w /app node:18-alpine npm ci --prefer-offline --no-audit
-                """
+                dir('my-node-app') {
+                    sh """
+                        docker run --rm -v /var/jenkins_home/workspace/devops-lab-pipeline/my-node-app:/app -w /app node:18-alpine npm ci --prefer-offline --no-audit
+                    """
+                }
             }
         }
         
         stage('Lint') {
             steps {
                 echo 'Running ESLint...'
-                sh """
-                    docker run --rm -v \$(pwd)/my-node-app:/app -w /app node:18-alpine npm run lint
-                """
+                dir('my-node-app') {
+                    sh """
+                        docker run --rm -v /var/jenkins_home/workspace/devops-lab-pipeline/my-node-app:/app -w /app node:18-alpine npm run lint
+                    """
+                }
             }
         }
         
@@ -58,7 +56,7 @@ pipeline {
             steps {
                 echo 'Running tests in Docker...'
                 sh """
-                    docker run --rm -d --name test-app-${BUILD_NUMBER} -p 3000:3000 -v \$(pwd)/my-node-app:/app -w /app node:18-alpine sh -c 'npm start'
+                    docker run --rm -d --name test-app-${BUILD_NUMBER} -p 3000:3000 -v /var/jenkins_home/workspace/devops-lab-pipeline/my-node-app:/app -w /app node:18-alpine sh -c 'npm start'
                     
                     for i in {1..30}; do
                         if curl -sf http://127.0.0.1:3000/health >/dev/null 2>&1; then
@@ -69,7 +67,7 @@ pipeline {
                         sleep 1
                     done
                     
-                    docker run --rm --network host -v \$(pwd)/my-node-app:/app -w /app node:18-alpine npm test
+                    docker run --rm --network host -v /var/jenkins_home/workspace/devops-lab-pipeline/my-node-app:/app -w /app node:18-alpine npm test
                     
                     docker stop test-app-${BUILD_NUMBER} || true
                     docker rm test-app-${BUILD_NUMBER} || true
