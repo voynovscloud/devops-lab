@@ -7,12 +7,13 @@ pipeline {
         DOCKER_REGISTRY = "ghcr.io"
         IMAGE_NAME = "${DOCKER_REGISTRY}/${GIT_ORG}/${APP_NAME}"
         GIT_ORG = "voynovscloud"
+        MINIKUBE_ACTIVE = "true"
     }
     
     parameters {
         choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Target environment')
         booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests')
-        booleanParam(name: 'PUSH_IMAGE', defaultValue: false, description: 'Push image to registry')
+        booleanParam(name: 'DEPLOY_TO_MINIKUBE', defaultValue: true, description: 'Deploy to local Minikube')
     }
     
     stages {
@@ -29,9 +30,9 @@ pipeline {
         
         stage('Build Docker Image') {
             steps {
-                echo "Building Docker image: ${IMAGE_NAME}:${BUILD_TAG}"
+                echo "Building Docker image: ${APP_NAME}:${BUILD_TAG}"
                 sh """
-                    docker build -t ${APP_NAME}:latest -t ${APP_NAME}:${BUILD_TAG} -t ${IMAGE_NAME}:${BUILD_TAG} -t ${IMAGE_NAME}:latest ${APP_DIR}
+                    docker build -t ${APP_NAME}:latest -t ${APP_NAME}:${BUILD_TAG} ${APP_DIR}
                 """
             }
         }
@@ -103,51 +104,23 @@ pipeline {
             }
         }
         
-        stage('Push to Registry') {
+        stage('Deploy to Minikube') {
             when {
-                expression { return params.PUSH_IMAGE }
+                expression { return params.DEPLOY_TO_MINIKUBE }
             }
             steps {
-                script {
-                    try {
-                        echo "Pushing image to ${DOCKER_REGISTRY}..."
-                        withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'REGISTRY_USER', passwordVariable: 'REGISTRY_TOKEN')]) {
-                            sh """
-                                echo \$REGISTRY_TOKEN | docker login ${DOCKER_REGISTRY} -u \$REGISTRY_USER --password-stdin
-                                docker push ${IMAGE_NAME}:${BUILD_TAG}
-                                docker push ${IMAGE_NAME}:latest
-                                docker logout ${DOCKER_REGISTRY}
-                            """
-                        }
-                        echo "✓ Image pushed successfully"
-                    } catch (Exception e) {
-                        echo """
-                        ⚠️  PUSH FAILED: Missing credentials
-                        
-                        To push images, add 'ghcr-credentials' in Jenkins:
-                        1. Manage Jenkins → Credentials → System → Global credentials
-                        2. Add Credentials → Username with password
-                        3. ID: ghcr-credentials
-                        4. Username: voynovscloud
-                        5. Password: GitHub Personal Access Token (with write:packages scope)
-                           Create at: https://github.com/settings/tokens
-                        
-                        Continuing pipeline without push...
-                        """
-                        currentBuild.result = 'UNSTABLE'
-                    }
-                }
-            }
-        }
-        
-        stage('Deploy to K8s') {
-            when {
-                expression { return params.PUSH_IMAGE && params.ENVIRONMENT != 'dev' }
-            }
-            steps {
-                echo "Deploying to Kubernetes (${params.ENVIRONMENT})..."
+                echo "Deploying to Minikube..."
                 sh """
-                    kubectl set image deployment/devops-lab-nodeapp devops-lab-nodeapp=${IMAGE_NAME}:${BUILD_TAG} -n ${params.ENVIRONMENT} || echo "Deployment not found, skipping"
+                    # Load image into Minikube
+                    minikube image load ${APP_NAME}:latest || echo "⚠️  Minikube not accessible from Jenkins container"
+                    
+                    # Try to restart deployment if kubectl is accessible
+                    if command -v kubectl &> /dev/null; then
+                        kubectl rollout restart deployment/node-app -n devops-lab || echo "⚠️  kubectl not configured"
+                    else
+                        echo "⚠️  kubectl not installed in Jenkins"
+                        echo "To deploy, run manually: minikube image load ${APP_NAME}:latest && kubectl rollout restart deployment/node-app -n devops-lab"
+                    fi
                 """
             }
         }
@@ -181,11 +154,10 @@ pipeline {
             ✅ PIPELINE SUCCEEDED!
             
             Next Steps:
-            1. View image: docker pull ${IMAGE_NAME}:${BUILD_TAG}
-            2. Run locally: docker run -p 3000:3000 ${IMAGE_NAME}:${BUILD_TAG}
+            1. View image: docker images | grep ${APP_NAME}
+            2. Run locally: docker run -p 3000:3000 ${APP_NAME}:latest
             3. Check security: Review trivy-report.json artifact
-            ${params.PUSH_IMAGE ? "4. Image pushed to GHCR ✓" : "4. Set PUSH_IMAGE=true to publish"}
-            ${params.ENVIRONMENT != 'dev' && params.PUSH_IMAGE ? "5. K8s deployment updated ✓" : ""}
+            ${params.DEPLOY_TO_MINIKUBE ? "4. Deploy to Minikube: minikube image load ${APP_NAME}:latest && kubectl rollout restart deployment/node-app -n devops-lab" : ""}
             """
         }
         failure {

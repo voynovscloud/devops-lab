@@ -24,14 +24,19 @@ else
     docker run -d \
         --name jenkins \
         --restart unless-stopped \
+        --user root \
         -p $JENKINS_PORT:8080 \
         -p 50000:50000 \
         -v "$JENKINS_HOME:/var/jenkins_home" \
         -v /var/run/docker.sock:/var/run/docker.sock \
         jenkins/jenkins:lts
-
-    echo "⏳ Waiting for Jenkins to start (30 seconds)..."
-    sleep 30
+    
+    echo "⏳ Installing Docker CLI in Jenkins container..."
+    sleep 10
+    docker exec -u root jenkins bash -c "apt-get update && apt-get install -y docker.io"
+    
+    echo "⏳ Waiting for Jenkins to fully start..."
+    sleep 20
 fi
 
 echo ""
