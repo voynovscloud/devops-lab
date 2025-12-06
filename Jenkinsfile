@@ -86,14 +86,34 @@ pipeline {
                 expression { return params.PUSH_IMAGE }
             }
             steps {
-                echo "Pushing image to ${DOCKER_REGISTRY}..."
-                withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'REGISTRY_USER', passwordVariable: 'REGISTRY_TOKEN')]) {
-                    sh """
-                        echo \$REGISTRY_TOKEN | docker login ${DOCKER_REGISTRY} -u \$REGISTRY_USER --password-stdin
-                        docker push ${IMAGE_NAME}:${BUILD_TAG}
-                        docker push ${IMAGE_NAME}:latest
-                        docker logout ${DOCKER_REGISTRY}
-                    """
+                script {
+                    try {
+                        echo "Pushing image to ${DOCKER_REGISTRY}..."
+                        withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'REGISTRY_USER', passwordVariable: 'REGISTRY_TOKEN')]) {
+                            sh """
+                                echo \$REGISTRY_TOKEN | docker login ${DOCKER_REGISTRY} -u \$REGISTRY_USER --password-stdin
+                                docker push ${IMAGE_NAME}:${BUILD_TAG}
+                                docker push ${IMAGE_NAME}:latest
+                                docker logout ${DOCKER_REGISTRY}
+                            """
+                        }
+                        echo "✓ Image pushed successfully"
+                    } catch (Exception e) {
+                        echo """
+                        ⚠️  PUSH FAILED: Missing credentials
+                        
+                        To push images, add 'ghcr-credentials' in Jenkins:
+                        1. Manage Jenkins → Credentials → System → Global credentials
+                        2. Add Credentials → Username with password
+                        3. ID: ghcr-credentials
+                        4. Username: voynovscloud
+                        5. Password: GitHub Personal Access Token (with write:packages scope)
+                           Create at: https://github.com/settings/tokens
+                        
+                        Continuing pipeline without push...
+                        """
+                        currentBuild.result = 'UNSTABLE'
+                    }
                 }
             }
         }
