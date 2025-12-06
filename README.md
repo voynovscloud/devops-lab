@@ -140,6 +140,7 @@ sudo bash -c "cat >> /etc/hosts << HOSTS
 $(minikube ip) app.local
 $(minikube ip) grafana.local
 $(minikube ip) prometheus.local
+$(minikube ip) argocd.local
 HOSTS"
 ```
 
@@ -147,7 +148,7 @@ Access services:
 - **Node App**: http://app.local
 - **Grafana**: http://grafana.local (admin/admin)
 - **Prometheus**: http://prometheus.local
-- **ArgoCD**: https://$(minikube ip):30443 (admin/password from secret)
+- **ArgoCD**: http://argocd.local (admin/password from secret)
 - **Jenkins**: http://localhost:8081 (runs in Docker)
 
 See [INGRESS_ACCESS.md](INGRESS_ACCESS.md) for detailed instructions.
