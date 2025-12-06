@@ -44,18 +44,18 @@ pipeline {
                 echo 'Running tests with built image...'
                 sh """
                     # Use a random high port to avoid conflicts
-                    TEST_PORT=\$((3100 + BUILD_NUMBER))
+                    TEST_PORT=\$((3100 + ${BUILD_NUMBER}))
                     
                     # Start the app from the built image
                     docker run --rm -d --name test-app-${BUILD_NUMBER} -p \${TEST_PORT}:3000 ${APP_NAME}:latest
                     
                     # Wait for app to be ready
-                    for i in {1..30}; do
+                    for i in \$(seq 1 30); do
                         if curl -sf http://127.0.0.1:\${TEST_PORT}/health >/dev/null 2>&1; then
                             echo "App is ready on port \${TEST_PORT}"
                             break
                         fi
-                        echo "Waiting for app... (\$i/30)"
+                        echo "Waiting for app... (\${i}/30)"
                         sleep 1
                     done
                     
