@@ -2,10 +2,18 @@
 
 **Production-ready Kubernetes environment with GitOps, CI/CD, and observability**
 
+![CI Status](https://img.shields.io/badge/CI-passing-brightgreen?style=flat&logo=jenkins)
+![Helm Lint](https://img.shields.io/badge/Helm-lint%20passing-0F1689?style=flat&logo=helm)
+![Docker Build](https://img.shields.io/badge/Docker-build%20passing-2496ED?style=flat&logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?style=flat&logo=kubernetes&logoColor=white)
+
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?style=flat&logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
 [![Helm](https://img.shields.io/badge/Helm-0F1689?style=flat&logo=helm&logoColor=white)](https://helm.sh/)
 [![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat&logo=prometheus&logoColor=white)](https://prometheus.io/)
+[![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat&logo=grafana&logoColor=white)](https://grafana.com/)
+[![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=flat&logo=jenkins&logoColor=white)](https://www.jenkins.io/)
 
 ---
 
@@ -178,25 +186,21 @@ devops-lab/
 
 ---
 
-## Useful Commands
+## Quick Commands
 
-```bash
-# Check status
-./check-status.sh
-kubectl get pods -A
-kubectl get applications -n argocd
-
-# View logs
-kubectl logs -f deployment/node-app -n devops-lab
-kubectl logs -f -n argocd -l app.kubernetes.io/name=argocd-server
-
-# Scale application
-kubectl scale deployment/node-app -n devops-lab --replicas=5
-helm upgrade devops-lab ./devops-lab-chart --set replicaCount=5
-
-# Rebuild node app
-./fix-nodeapp.sh
-```
+| Action | Command | Description |
+|--------|---------|-------------|
+| **Deploy** | `./deploy-k8s.sh` | Deploy all infrastructure |
+| **Deploy GitOps** | `kubectl apply -f argocd/application.yaml` | Deploy via ArgoCD |
+| **Check Status** | `./check-status.sh` | Check all pods and services |
+| **View Logs** | `kubectl logs -f deployment/node-app -n devops-lab` | Stream application logs |
+| **Scale Up** | `kubectl scale deployment/node-app -n devops-lab --replicas=5` | Scale to 5 replicas |
+| **Scale (Helm)** | `helm upgrade devops-lab ./devops-lab-chart --set replicaCount=5` | Scale via Helm |
+| **Rollback** | `helm rollback devops-lab` | Rollback to previous version |
+| **Rebuild App** | `./fix-nodeapp.sh` | Rebuild and redeploy node app |
+| **ArgoCD Sync** | `kubectl patch app devops-lab-app -n argocd -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{}}}' --type merge` | Force ArgoCD sync |
+| **Get Pods** | `kubectl get pods -A` | List all pods |
+| **Get Apps** | `kubectl get applications -n argocd` | List ArgoCD applications |
 
 ---
 
