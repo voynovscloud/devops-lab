@@ -32,25 +32,62 @@ if ! command -v kubectl &> /dev/null; then
     exit 1
 fi
 
-# Check if Kubernetes cluster is accessible
-echo "Checking Kubernetes cluster..."
-if ! kubectl cluster-info &> /dev/null; then
-    print_error "Cannot connect to Kubernetes cluster!"
+# Check if K3s is installed
+echo "Checking for Kubernetes installation..."
+if command -v k3s &> /dev/null; then
+    print_status "K3s is installed"
+    
+    # Check if K3s service is running
+    if ! systemctl is-active --quiet k3s 2>/dev/null && ! sudo systemctl is-active --quiet k3s 2>/dev/null; then
+        print_warning "K3s is installed but not running"
+        echo "Starting K3s..."
+        sudo systemctl start k3s
+        sleep 5
+    fi
+    
+    # Setup kubeconfig if needed
+    if [ ! -f ~/.kube/config ]; then
+        print_warning "Setting up kubeconfig..."
+        mkdir -p ~/.kube
+        sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+        sudo chown $USER ~/.kube/config
+    fi
+else
+    print_error "K3s is not installed!"
     echo ""
-    echo "Please ensure:"
-    echo "1. Kubernetes cluster is running (K3s, minikube, etc.)"
-    echo "2. kubectl is configured with proper credentials"
-    echo ""
-    echo "To install K3s:"
+    echo "Install K3s with:"
     echo "  curl -sfL https://get.k3s.io | sh -"
-    echo "  sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config"
-    echo "  sudo chown \$USER ~/.kube/config"
+    echo ""
+    echo "After installation, run this script again."
     exit 1
 fi
 
-print_status "Kubernetes cluster is accessible"
-kubectl cluster-info | head -2
-echo ""
+# Check if Kubernetes cluster is accessible
+echo "Checking Kubernetes cluster connectivity..."
+RETRIES=0
+MAX_RETRIES=10
+while [ $RETRIES -lt $MAX_RETRIES ]; do
+    if kubectl cluster-info &> /dev/null; then
+        print_status "Kubernetes cluster is accessible"
+        kubectl cluster-info | head -2
+        echo ""
+        break
+    fi
+    
+    RETRIES=$((RETRIES + 1))
+    if [ $RETRIES -lt $MAX_RETRIES ]; then
+        echo "Waiting for cluster to be ready... ($RETRIES/$MAX_RETRIES)"
+        sleep 3
+    else
+        print_error "Cannot connect to Kubernetes cluster after $MAX_RETRIES attempts"
+        echo ""
+        echo "Try these commands:"
+        echo "  sudo systemctl status k3s"
+        echo "  sudo systemctl start k3s"
+        echo "  sudo journalctl -u k3s -f"
+        exit 1
+    fi
+done
 
 # Use --validate=false to avoid API server issues
 KUBECTL_OPTS="--validate=false"
