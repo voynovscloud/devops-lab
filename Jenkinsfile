@@ -44,23 +44,31 @@ pipeline {
             steps {
                 echo 'Running tests with built image...'
                 sh """
-                    # Start the app from the built image (use host network for easy access from Jenkins)
-                    docker run --rm -d --name test-app-${BUILD_NUMBER} --network host ${APP_NAME}:latest
+                    # Start the app container
+                    echo "Starting test container..."
+                    docker run --rm -d --name test-app-${BUILD_NUMBER} ${APP_NAME}:latest
                     
-                    # Check if container started
+                    # Wait a moment for container to start
                     sleep 3
+                    
+                    # Check if container is running
                     if ! docker ps | grep -q test-app-${BUILD_NUMBER}; then
-                        echo "Container failed to start!"
-                        docker logs test-app-${BUILD_NUMBER} || true
+                        echo "❌ Container failed to start!"
+                        echo "Container logs:"
+                        docker logs test-app-${BUILD_NUMBER} 2>&1 || true
                         exit 1
                     fi
                     
-                    # Wait for app to be ready (up to 30 seconds)
-                    echo "Waiting for app to start on port 3000..."
+                    # Get container IP
+                    CONTAINER_IP=\$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' test-app-${BUILD_NUMBER})
+                    echo "Container IP: \${CONTAINER_IP}"
+                    
+                    # Wait for app to be ready
+                    echo "Waiting for app to start..."
                     READY=0
                     for i in \$(seq 1 30); do
-                        if curl -sf http://localhost:3000/health >/dev/null 2>&1; then
-                            echo "✓ App is ready on port 3000 (took \${i}s)"
+                        if docker exec test-app-${BUILD_NUMBER} wget -q -O- http://localhost:3000/health >/dev/null 2>&1; then
+                            echo "✓ App is ready (took \${i}s)"
                             READY=1
                             break
                         fi
@@ -71,7 +79,7 @@ pipeline {
                     done
                     
                     if [ \$READY -eq 0 ]; then
-                        echo "App failed to become ready within 30 seconds"
+                        echo "❌ App failed to become ready within 30 seconds"
                         echo "Container logs:"
                         docker logs test-app-${BUILD_NUMBER}
                         docker stop test-app-${BUILD_NUMBER} || true
@@ -80,8 +88,8 @@ pipeline {
                     
                     # Run health check tests
                     echo "Running health checks..."
-                    curl -f http://localhost:3000/health || exit 1
-                    curl -f http://localhost:3000/metrics || exit 1
+                    docker exec test-app-${BUILD_NUMBER} wget -q -O- http://localhost:3000/health || exit 1
+                    docker exec test-app-${BUILD_NUMBER} wget -q -O- http://localhost:3000/metrics || exit 1
                     echo "✓ All health checks passed"
                     
                     # Cleanup
