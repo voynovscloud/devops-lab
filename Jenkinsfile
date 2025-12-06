@@ -127,28 +127,6 @@ pipeline {
     }
     
     post {
-        always {
-            echo 'Cleaning up...'
-            sh 'docker system prune -f || true'
-            archiveArtifacts artifacts: 'trivy-report.json', allowEmptyArchive: true
-            
-            // Summary report
-            script {
-                def duration = currentBuild.durationString.replace(' and counting', '')
-                echo """
-                =====================================
-                BUILD SUMMARY
-                =====================================
-                Status: ${currentBuild.currentResult}
-                Duration: ${duration}
-                Image: ${IMAGE_NAME}:${BUILD_TAG}
-                Environment: ${params.ENVIRONMENT}
-                Commit: ${env.GIT_COMMIT_SHORT}
-                Build: #${BUILD_NUMBER}
-                =====================================
-                """
-            }
-        }
         success {
             echo """
             ✅ PIPELINE SUCCEEDED!
@@ -157,18 +135,17 @@ pipeline {
             1. View image: docker images | grep ${APP_NAME}
             2. Run locally: docker run -p 3000:3000 ${APP_NAME}:latest
             3. Check security: Review trivy-report.json artifact
-            ${params.DEPLOY_TO_MINIKUBE ? "4. Deploy to Minikube: minikube image load ${APP_NAME}:latest && kubectl rollout restart deployment/node-app -n devops-lab" : ""}
+            
+            To deploy to Minikube manually:
+            docker save ${APP_NAME}:latest | minikube image load -
+            kubectl rollout restart deployment/node-app -n devops-lab
             """
         }
         failure {
             echo """
             ❌ PIPELINE FAILED
             
-            Troubleshooting:
-            1. Check console output above for errors
-            2. Review stage that failed
-            3. Check Docker logs: docker logs <container-id>
-            4. Verify credentials if push failed
+            Check console output above for errors.
             """
         }
     }
