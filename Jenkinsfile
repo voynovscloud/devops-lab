@@ -30,18 +30,18 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installing Node.js dependencies...'
-                dir(APP_DIR) {
-                    sh 'npm ci --prefer-offline --no-audit'
-                }
+                sh """
+                    docker run --rm -v \$(pwd)/${APP_DIR}:/app -w /app node:18-alpine npm ci --prefer-offline --no-audit
+                """
             }
         }
         
         stage('Lint') {
             steps {
                 echo 'Running ESLint...'
-                dir(APP_DIR) {
-                    sh 'npm run lint'
-                }
+                sh """
+                    docker run --rm -v \$(pwd)/${APP_DIR}:/app -w /app node:18-alpine npm run lint
+                """
             }
         }
         
@@ -50,30 +50,24 @@ pipeline {
                 expression { return !params.SKIP_TESTS }
             }
             steps {
-                echo 'Starting app and running tests...'
-                dir(APP_DIR) {
-                    sh '''
-                        nohup npm start > server.log 2>&1 &
-                        APP_PID=$!
-                        echo $APP_PID > .app.pid
-                        
-                        for i in {1..30}; do
-                            if curl -sf http://127.0.0.1:3000/health >/dev/null 2>&1; then
-                                echo "App is ready"
-                                break
-                            fi
-                            echo "Waiting for app... ($i/30)"
-                            sleep 1
-                        done
-                        
-                        npm test
-                        
-                        if [ -f .app.pid ]; then
-                            kill $(cat .app.pid) || true
-                            rm -f .app.pid
+                echo 'Running tests in Docker...'
+                sh """
+                    docker run --rm -d --name test-app-${BUILD_NUMBER} -p 3000:3000 -v \$(pwd)/${APP_DIR}:/app -w /app node:18-alpine sh -c 'npm start'
+                    
+                    for i in {1..30}; do
+                        if curl -sf http://127.0.0.1:3000/health >/dev/null 2>&1; then
+                            echo "App is ready"
+                            break
                         fi
-                    '''
-                }
+                        echo "Waiting for app... (\$i/30)"
+                        sleep 1
+                    done
+                    
+                    docker run --rm --network host -v \$(pwd)/${APP_DIR}:/app -w /app node:18-alpine npm test
+                    
+                    docker stop test-app-${BUILD_NUMBER} || true
+                    docker rm test-app-${BUILD_NUMBER} || true
+                """
             }
         }
         
