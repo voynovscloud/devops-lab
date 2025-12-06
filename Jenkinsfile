@@ -31,7 +31,7 @@ pipeline {
             steps {
                 echo 'Installing Node.js dependencies...'
                 sh """
-                    docker run --rm -v \$(pwd)/${APP_DIR}:/app -w /app node:18-alpine npm ci --prefer-offline --no-audit
+                    docker run --rm -v \$(pwd)/my-node-app:/app -w /app node:18-alpine npm ci --prefer-offline --no-audit
                 """
             }
         }
@@ -40,7 +40,7 @@ pipeline {
             steps {
                 echo 'Running ESLint...'
                 sh """
-                    docker run --rm -v \$(pwd)/${APP_DIR}:/app -w /app node:18-alpine npm run lint
+                    docker run --rm -v \$(pwd)/my-node-app:/app -w /app node:18-alpine npm run lint
                 """
             }
         }
@@ -52,7 +52,7 @@ pipeline {
             steps {
                 echo 'Running tests in Docker...'
                 sh """
-                    docker run --rm -d --name test-app-${BUILD_NUMBER} -p 3000:3000 -v \$(pwd)/${APP_DIR}:/app -w /app node:18-alpine sh -c 'npm start'
+                    docker run --rm -d --name test-app-${BUILD_NUMBER} -p 3000:3000 -v \$(pwd)/my-node-app:/app -w /app node:18-alpine sh -c 'npm start'
                     
                     for i in {1..30}; do
                         if curl -sf http://127.0.0.1:3000/health >/dev/null 2>&1; then
@@ -63,7 +63,7 @@ pipeline {
                         sleep 1
                     done
                     
-                    docker run --rm --network host -v \$(pwd)/${APP_DIR}:/app -w /app node:18-alpine npm test
+                    docker run --rm --network host -v \$(pwd)/my-node-app:/app -w /app node:18-alpine npm test
                     
                     docker stop test-app-${BUILD_NUMBER} || true
                     docker rm test-app-${BUILD_NUMBER} || true
