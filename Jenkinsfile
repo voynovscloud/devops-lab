@@ -44,37 +44,34 @@ pipeline {
             steps {
                 echo 'Running tests with built image...'
                 sh """
-                    # Use a random high port to avoid conflicts
-                    TEST_PORT=\$((3100 + ${BUILD_NUMBER}))
-                    
-                    # Start the app from the built image
-                    docker run --rm -d --name test-app-${BUILD_NUMBER} -p \${TEST_PORT}:3000 ${APP_NAME}:latest
+                    # Start the app from the built image (use host network for easy access from Jenkins)
+                    docker run --rm -d --name test-app-${BUILD_NUMBER} --network host ${APP_NAME}:latest
                     
                     # Check if container started
-                    sleep 2
+                    sleep 3
                     if ! docker ps | grep -q test-app-${BUILD_NUMBER}; then
                         echo "Container failed to start!"
                         docker logs test-app-${BUILD_NUMBER} || true
                         exit 1
                     fi
                     
-                    # Wait for app to be ready (up to 60 seconds)
-                    echo "Waiting for app to start on port \${TEST_PORT}..."
+                    # Wait for app to be ready (up to 30 seconds)
+                    echo "Waiting for app to start on port 3000..."
                     READY=0
-                    for i in \$(seq 1 60); do
-                        if curl -sf http://127.0.0.1:\${TEST_PORT}/health >/dev/null 2>&1; then
-                            echo "✓ App is ready on port \${TEST_PORT} (took \${i}s)"
+                    for i in \$(seq 1 30); do
+                        if curl -sf http://localhost:3000/health >/dev/null 2>&1; then
+                            echo "✓ App is ready on port 3000 (took \${i}s)"
                             READY=1
                             break
                         fi
-                        if [ \$((i % 10)) -eq 0 ]; then
-                            echo "Still waiting... (\${i}/60s)"
+                        if [ \$((i % 5)) -eq 0 ]; then
+                            echo "Still waiting... (\${i}/30s)"
                         fi
                         sleep 1
                     done
                     
                     if [ \$READY -eq 0 ]; then
-                        echo "App failed to become ready within 60 seconds"
+                        echo "App failed to become ready within 30 seconds"
                         echo "Container logs:"
                         docker logs test-app-${BUILD_NUMBER}
                         docker stop test-app-${BUILD_NUMBER} || true
@@ -83,8 +80,8 @@ pipeline {
                     
                     # Run health check tests
                     echo "Running health checks..."
-                    curl -f http://127.0.0.1:\${TEST_PORT}/health || exit 1
-                    curl -f http://127.0.0.1:\${TEST_PORT}/metrics || exit 1
+                    curl -f http://localhost:3000/health || exit 1
+                    curl -f http://localhost:3000/metrics || exit 1
                     echo "✓ All health checks passed"
                     
                     # Cleanup
