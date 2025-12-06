@@ -1,0 +1,47 @@
+=== Cluster Status ===
+minikube
+type: Control Plane
+host: Running
+kubelet: Running
+apiserver: Running
+kubeconfig: Configured
+
+
+=== All Pods ===
+NAMESPACE     NAME                               READY   STATUS    RESTARTS      AGE
+devops-lab    node-app-85ccf55454-qk4jj          1/1     Running   0             56s
+devops-lab    node-app-85ccf55454-t8qrd          1/1     Running   0             56s
+devops-lab    node-app-85ccf55454-z9bls          1/1     Running   0             56s
+jenkins       jenkins-684cb56d4-hgqgw            1/1     Running   0             22m
+kube-system   coredns-66bc5c9577-gmfnb           1/1     Running   1 (23m ago)   24m
+kube-system   etcd-minikube                      1/1     Running   1 (23m ago)   24m
+kube-system   kube-apiserver-minikube            1/1     Running   1 (23m ago)   24m
+kube-system   kube-controller-manager-minikube   1/1     Running   1 (23m ago)   24m
+kube-system   kube-proxy-4t7f6                   1/1     Running   1 (23m ago)   24m
+kube-system   kube-scheduler-minikube            1/1     Running   1 (23m ago)   24m
+kube-system   storage-provisioner                1/1     Running   2 (23m ago)   24m
+monitoring    grafana-65cf9c68fd-s6k94           1/1     Running   0             20m
+monitoring    prometheus-6889695b7f-6tsnd        1/1     Running   0             23m
+
+=== All Services ===
+NAMESPACE     NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                  AGE
+default       kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP                  24m
+devops-lab    node-app     ClusterIP   10.105.223.247   <none>        80/TCP                   23m
+jenkins       jenkins      ClusterIP   10.104.78.126    <none>        8080/TCP,50000/TCP       22m
+kube-system   kube-dns     ClusterIP   10.96.0.10       <none>        53/UDP,53/TCP,9153/TCP   24m
+monitoring    grafana      ClusterIP   10.99.89.6       <none>        3000/TCP                 22m
+monitoring    prometheus   ClusterIP   10.111.72.77     <none>        9090/TCP                 23m
+
+=== All PVCs ===
+NAMESPACE    NAME                 STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+jenkins      jenkins-home         Bound    pvc-7888fc16-0c56-4ffa-af7a-822137ca246a   20Gi       RWO            standard       <unset>                 22m
+monitoring   grafana-storage      Bound    pvc-273d8d2e-d31c-470c-9d2e-c0a5cef2ac6e   5Gi        RWO            standard       <unset>                 22m
+monitoring   prometheus-storage   Bound    pvc-29a19bdb-da30-4411-a271-cb2b4767f5fc   10Gi       RWO            standard       <unset>                 23m
+
+=== Deployments ===
+NAMESPACE     NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+devops-lab    node-app     3/3     3            3           58s
+jenkins       jenkins      1/1     1            1           22m
+kube-system   coredns      1/1     1            1           24m
+monitoring    grafana      1/1     1            1           22m
+monitoring    prometheus   1/1     1            1           23m

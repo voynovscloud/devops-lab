@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -eo pipefail
 
 echo "========================================"
 echo "DevOps Lab - Kubernetes Deployment Script"
@@ -14,27 +14,48 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
-    echo -e "${GREEN}✓${NC} $1"
+    printf "${GREEN}✓${NC} %s\n" "$1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
+    printf "${YELLOW}⚠${NC} %s\n" "$1"
 }
 
 print_error() {
-    echo -e "${RED}✗${NC} $1"
+    printf "${RED}✗${NC} %s\n" "$1"
 }
 
-# Check if kubectl is installed
-if ! command -v kubectl &> /dev/null; then
+# Check if kubectl is available (either standalone or via minikube)
+if command -v kubectl &> /dev/null; then
+    KUBECTL="kubectl"
+elif command -v minikube &> /dev/null; then
+    KUBECTL="minikube kubectl --"
+    print_status "Using kubectl via minikube"
+else
     print_error "kubectl is not installed. Please install kubectl first."
     echo "Install with: curl -LO https://dl.k8s.io/release/\$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     exit 1
 fi
 
-# Check if K3s is installed
+# Check for Kubernetes installation (prefer Minikube over K3s)
 echo "Checking for Kubernetes installation..."
-if command -v k3s &> /dev/null; then
+CLUSTER_TYPE=""
+
+if command -v minikube &> /dev/null; then
+    CLUSTER_TYPE="minikube"
+    print_status "Minikube is installed"
+    
+    # Check if Minikube is running
+    if ! minikube status &> /dev/null; then
+        print_warning "Minikube is not running. Starting..."
+        minikube start --cpus=4 --memory=8192 --disk-size=20g
+        print_status "Minikube started"
+    else
+        print_status "Minikube is running"
+    fi
+    
+elif command -v k3s &> /dev/null; then
+    CLUSTER_TYPE="k3s"
     print_status "K3s is installed"
     
     # Check if K3s service is running
@@ -53,9 +74,17 @@ if command -v k3s &> /dev/null; then
         sudo chown $USER ~/.kube/config
     fi
 else
-    print_error "K3s is not installed!"
+    print_error "No Kubernetes cluster found!"
     echo ""
-    echo "Install K3s with:"
+    echo "Install Minikube (recommended for local development):"
+    echo "  # Install Minikube"
+    echo "  curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64"
+    echo "  sudo install minikube-linux-amd64 /usr/local/bin/minikube"
+    echo ""
+    echo "  # Start Minikube"
+    echo "  minikube start --cpus=4 --memory=8192"
+    echo ""
+    echo "Or install K3s (lightweight):"
     echo "  curl -sfL https://get.k3s.io | sh -"
     echo ""
     echo "After installation, run this script again."
@@ -67,9 +96,9 @@ echo "Checking Kubernetes cluster connectivity..."
 RETRIES=0
 MAX_RETRIES=10
 while [ $RETRIES -lt $MAX_RETRIES ]; do
-    if kubectl cluster-info &> /dev/null; then
-        print_status "Kubernetes cluster is accessible"
-        kubectl cluster-info | head -2
+    if $KUBECTL cluster-info &> /dev/null; then
+        print_status "Kubernetes cluster is accessible (using $CLUSTER_TYPE)"
+        $KUBECTL cluster-info | head -2
         echo ""
         break
     fi
@@ -81,10 +110,17 @@ while [ $RETRIES -lt $MAX_RETRIES ]; do
     else
         print_error "Cannot connect to Kubernetes cluster after $MAX_RETRIES attempts"
         echo ""
-        echo "Try these commands:"
-        echo "  sudo systemctl status k3s"
-        echo "  sudo systemctl start k3s"
-        echo "  sudo journalctl -u k3s -f"
+        if [ "$CLUSTER_TYPE" == "minikube" ]; then
+            echo "Try these commands:"
+            echo "  minikube status"
+            echo "  minikube start"
+            echo "  minikube logs"
+        else
+            echo "Try these commands:"
+            echo "  sudo systemctl status k3s"
+            echo "  sudo systemctl start k3s"
+            echo "  sudo journalctl -u k3s -f"
+        fi
         exit 1
     fi
 done
@@ -102,10 +138,14 @@ wait_for_pods() {
     echo "Waiting for pods in namespace $namespace (label: $label)..."
     
     while [ $elapsed -lt $timeout ]; do
-        ready=$(kubectl get pods -n $namespace -l $label --no-headers 2>/dev/null | grep -c "1/1.*Running" || echo "0")
-        total=$(kubectl get pods -n $namespace -l $label --no-headers 2>/dev/null | wc -l || echo "0")
+        ready=$($KUBECTL get pods -n $namespace -l $label --no-headers 2>/dev/null | grep -c "1/1.*Running" || echo "0")
+        total=$($KUBECTL get pods -n $namespace -l $label --no-headers 2>/dev/null | wc -l || echo "0")
         
-        if [ "$total" -gt 0 ] && [ "$ready" -eq "$total" ]; then
+        # Remove any whitespace from numbers
+        ready=$(echo $ready | tr -d ' ')
+        total=$(echo $total | tr -d ' ')
+        
+        if [ ! -z "$total" ] && [ "$total" -gt 0 ] 2>/dev/null && [ "$ready" -eq "$total" ] 2>/dev/null; then
             print_status "All pods ready in $namespace ($ready/$total)"
             return 0
         fi
@@ -125,7 +165,7 @@ restart_not_ready_pods() {
     
     echo "Checking for not-ready pods in namespace $namespace..."
     
-    not_ready_pods=$(kubectl get pods -n $namespace --no-headers 2>/dev/null | grep -v "1/1.*Running" | awk '{print $1}' || echo "")
+    not_ready_pods=$($KUBECTL get pods -n $namespace --no-headers 2>/dev/null | grep -v "1/1.*Running" | awk '{print $1}' || echo "")
     
     if [ -z "$not_ready_pods" ]; then
         print_status "All pods are ready in $namespace"
@@ -134,7 +174,7 @@ restart_not_ready_pods() {
     
     for pod in $not_ready_pods; do
         print_warning "Restarting not-ready pod: $pod"
-        kubectl delete pod $pod -n $namespace --grace-period=10 || true
+        $KUBECTL delete pod $pod -n $namespace --grace-period=10 || true
     done
     
     sleep 10
@@ -142,39 +182,39 @@ restart_not_ready_pods() {
 
 echo "Step 1: Applying Node App manifests..."
 echo "========================================"
-kubectl apply $KUBECTL_OPTS -f k8s/node-app/namespace.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/node-app/configmap.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/node-app/deployment.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/node-app/service.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/node-app/ingress.yaml 2>/dev/null || print_warning "Ingress not applied (controller may not be installed)"
+$KUBECTL apply $KUBECTL_OPTS -f k8s/node-app/namespace.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/node-app/configmap.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/node-app/deployment.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/node-app/service.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/node-app/ingress.yaml 2>/dev/null || print_warning "Ingress not applied (controller may not be installed)"
 print_status "Node App manifests applied"
 echo ""
 
 echo "Step 2: Applying Prometheus manifests..."
 echo "========================================"
-kubectl apply $KUBECTL_OPTS -f k8s/prometheus/namespace.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/prometheus/rbac.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/prometheus/configmap.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/prometheus/pvc.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/prometheus/deployment.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/prometheus/service.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/prometheus/namespace.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/prometheus/rbac.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/prometheus/configmap.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/prometheus/pvc.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/prometheus/deployment.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/prometheus/service.yaml
 print_status "Prometheus manifests applied"
 echo ""
 
 echo "Step 3: Applying Grafana manifests..."
 echo "========================================"
-kubectl apply $KUBECTL_OPTS -f k8s/grafana/secret.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/grafana/configmap.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/grafana/pvc.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/grafana/deployment.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/grafana/service.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/grafana/secret.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/grafana/configmap.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/grafana/pvc.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/grafana/deployment.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/grafana/service.yaml
 print_status "Grafana manifests applied"
 echo ""
 
 echo "Step 4: Fixing Grafana permissions..."
 echo "========================================"
 print_warning "Patching Grafana deployment to run as root (fixes PVC permission issues)"
-kubectl patch deployment grafana -n monitoring --type='json' -p='[
+$KUBECTL patch deployment grafana -n monitoring --type='json' -p='[
   {
     "op": "remove",
     "path": "/spec/template/spec/containers/0/securityContext"
@@ -190,7 +230,7 @@ kubectl patch deployment grafana -n monitoring --type='json' -p='[
 ]' 2>/dev/null || print_warning "Patch may have already been applied"
 
 # Alternative: Add init container to fix permissions
-kubectl patch deployment grafana -n monitoring --type='json' -p='[
+$KUBECTL patch deployment grafana -n monitoring --type='json' -p='[
   {
     "op": "add",
     "path": "/spec/template/spec/initContainers",
@@ -218,11 +258,11 @@ echo ""
 
 echo "Step 5: Applying Jenkins manifests..."
 echo "========================================"
-kubectl apply $KUBECTL_OPTS -f k8s/jenkins/namespace.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/jenkins/rbac.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/jenkins/pvc.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/jenkins/deployment.yaml
-kubectl apply $KUBECTL_OPTS -f k8s/jenkins/service.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/jenkins/namespace.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/jenkins/rbac.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/jenkins/pvc.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/jenkins/deployment.yaml
+$KUBECTL apply $KUBECTL_OPTS -f k8s/jenkins/service.yaml
 print_status "Jenkins manifests applied"
 echo ""
 
@@ -262,31 +302,31 @@ echo ""
 
 echo "📦 Persistent Volume Claims:"
 echo "----------------------------"
-kubectl get pvc -n devops-lab 2>/dev/null || echo "No PVCs in devops-lab"
-kubectl get pvc -n monitoring
-kubectl get pvc -n jenkins
+$KUBECTL get pvc -n devops-lab 2>/dev/null || echo "No PVCs in devops-lab"
+$KUBECTL get pvc -n monitoring
+$KUBECTL get pvc -n jenkins
 echo ""
 
 echo "🔄 Pods Status:"
 echo "----------------------------"
 echo "Node App (devops-lab):"
-kubectl get pods -n devops-lab -o wide
+$KUBECTL get pods -n devops-lab -o wide
 echo ""
 echo "Prometheus (monitoring):"
-kubectl get pods -n monitoring -l app=prometheus -o wide
+$KUBECTL get pods -n monitoring -l app=prometheus -o wide
 echo ""
 echo "Grafana (monitoring):"
-kubectl get pods -n monitoring -l app=grafana -o wide
+$KUBECTL get pods -n monitoring -l app=grafana -o wide
 echo ""
 echo "Jenkins (jenkins):"
-kubectl get pods -n jenkins -o wide
+$KUBECTL get pods -n jenkins -o wide
 echo ""
 
 echo "🌐 Services:"
 echo "----------------------------"
-kubectl get svc -n devops-lab
-kubectl get svc -n monitoring
-kubectl get svc -n jenkins
+$KUBECTL get svc -n devops-lab
+$KUBECTL get svc -n monitoring
+$KUBECTL get svc -n jenkins
 echo ""
 
 echo "========================================"
@@ -311,7 +351,7 @@ echo ""
 # Check if any pods are not running
 echo "Final Health Check:"
 echo "-------------------"
-not_running=$(kubectl get pods -A | grep -v "Running\|Completed" | grep -v "NAME" || echo "")
+not_running=$($KUBECTL get pods -A | grep -v "Running\|Completed" | grep -v "NAME" || echo "")
 if [ -z "$not_running" ]; then
     print_status "All pods are running successfully!"
 else
