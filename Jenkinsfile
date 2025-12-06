@@ -1,53 +1,142 @@
 pipeline {
-agent any
-environment {
-APP_NAME = "devops-lab-nodeapp"
-APP_DIR = "./my-node-app"
-}
-stages {
-stage('Checkout') {
-steps {
-echo 'Cloning repository...'
-checkout scm
-}
-}
-
-```
-    stage('Build Docker image') {
-        steps {
-            echo 'Building Docker image...'
-            sh """
-            if [ -f ${APP_DIR}/Dockerfile ]; then
-                docker build -t ${APP_NAME}:latest ${APP_DIR}
-            else
-                echo "No Dockerfile found, skipping build"
-            fi
-            """
+    agent any
+    
+    environment {
+        APP_NAME = "devops-lab-nodeapp"
+        APP_DIR = "./my-node-app"
+        DOCKER_REGISTRY = "ghcr.io"
+        IMAGE_NAME = "${DOCKER_REGISTRY}/${GIT_ORG}/${APP_NAME}"
+        GIT_ORG = "voynovscloud"
+    }
+    
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Target environment')
+        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests')
+        booleanParam(name: 'PUSH_IMAGE', defaultValue: false, description: 'Push image to registry')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Cloning repository...'
+                checkout scm
+                script {
+                    env.GIT_COMMIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    env.BUILD_TAG = "${env.ENVIRONMENT}-${env.GIT_COMMIT_SHORT}-${env.BUILD_NUMBER}"
+                }
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installing Node.js dependencies...'
+                dir(APP_DIR) {
+                    sh 'npm ci --prefer-offline --no-audit'
+                }
+            }
+        }
+        
+        stage('Lint') {
+            steps {
+                echo 'Running ESLint...'
+                dir(APP_DIR) {
+                    sh 'npm run lint'
+                }
+            }
+        }
+        
+        stage('Test') {
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
+            steps {
+                echo 'Starting app and running tests...'
+                dir(APP_DIR) {
+                    sh '''
+                        nohup npm start > server.log 2>&1 &
+                        APP_PID=$!
+                        echo $APP_PID > .app.pid
+                        
+                        for i in {1..30}; do
+                            if curl -sf http://127.0.0.1:3000/health >/dev/null 2>&1; then
+                                echo "App is ready"
+                                break
+                            fi
+                            echo "Waiting for app... ($i/30)"
+                            sleep 1
+                        done
+                        
+                        npm test
+                        
+                        if [ -f .app.pid ]; then
+                            kill $(cat .app.pid) || true
+                            rm -f .app.pid
+                        fi
+                    '''
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                echo "Building Docker image: ${IMAGE_NAME}:${BUILD_TAG}"
+                sh """
+                    docker build -t ${APP_NAME}:latest -t ${APP_NAME}:${BUILD_TAG} -t ${IMAGE_NAME}:${BUILD_TAG} -t ${IMAGE_NAME}:latest ${APP_DIR}
+                """
+            }
+        }
+        
+        stage('Security Scan') {
+            steps {
+                echo 'Running Trivy security scan...'
+                sh """
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$(pwd):/workspace ghcr.io/aquasecurity/trivy:latest image --format json --output /workspace/trivy-report.json ${APP_NAME}:latest || true
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock ghcr.io/aquasecurity/trivy:latest image --severity HIGH,CRITICAL ${APP_NAME}:latest || true
+                """
+            }
+        }
+        
+        stage('Push to Registry') {
+            when {
+                expression { return params.PUSH_IMAGE }
+            }
+            steps {
+                echo "Pushing image to ${DOCKER_REGISTRY}..."
+                withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'REGISTRY_USER', passwordVariable: 'REGISTRY_TOKEN')]) {
+                    sh """
+                        echo \$REGISTRY_TOKEN | docker login ${DOCKER_REGISTRY} -u \$REGISTRY_USER --password-stdin
+                        docker push ${IMAGE_NAME}:${BUILD_TAG}
+                        docker push ${IMAGE_NAME}:latest
+                        docker logout ${DOCKER_REGISTRY}
+                    """
+                }
+            }
+        }
+        
+        stage('Deploy to K8s') {
+            when {
+                expression { return params.PUSH_IMAGE && params.ENVIRONMENT != 'dev' }
+            }
+            steps {
+                echo "Deploying to Kubernetes (${params.ENVIRONMENT})..."
+                sh """
+                    kubectl set image deployment/devops-lab-nodeapp devops-lab-nodeapp=${IMAGE_NAME}:${BUILD_TAG} -n ${params.ENVIRONMENT} || echo "Deployment not found, skipping"
+                """
+            }
         }
     }
-
-    stage('Run container (smoke test)') {
-        steps {
-            echo 'Running container briefly to check build...'
-            sh """
-            if docker images | grep -q ${APP_NAME}; then
-                docker run --rm -d --name ${APP_NAME}-smoke ${APP_NAME}:latest
-                sleep 5
-                docker logs ${APP_NAME}-smoke || true
-                docker stop ${APP_NAME}-smoke || true
-            else
-                echo "No image found, skipping run"
-            fi
-            """
+    
+    post {
+        always {
+            echo 'Cleaning up...'
+            sh 'docker system prune -f || true'
+            archiveArtifacts artifacts: 'trivy-report.json', allowEmptyArchive: true
+        }
+        success {
+            echo "✓ Pipeline succeeded! Image: ${IMAGE_NAME}:${BUILD_TAG}"
+        }
+        failure {
+            echo '✗ Pipeline failed'
         }
     }
-}
-
-post {
-    always {
-        echo 'Pipeline finished'
-    }
-}
-```
-
 }

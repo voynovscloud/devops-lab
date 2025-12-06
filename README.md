@@ -4,8 +4,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-18-green)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/Docker-Supported-blue)](https://www.docker.com/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-blue)](https://kubernetes.io/)
 
-A small demo DevOps lab containing a Node.js app, Prometheus, Grafana, Jenkins and other tooling wired together via `docker-compose`.
+🚀 **Production-Ready DevOps Pipeline in Minutes** — Complete CI/CD setup with Jenkins, GitHub Actions, Kubernetes, and monitoring. Clone and deploy.
+
+A professional DevOps lab featuring Node.js app, Prometheus, Grafana, Jenkins, and complete CI/CD pipelines.
 
 ## Contents
 - `my-node-app/` — Node.js example app exposing Prometheus metrics and health endpoints
@@ -52,34 +55,63 @@ Available scripts:
 - `npm run build` — Prepare build (currently no-op)
 - `npm test` — Health check test against running server
 
-## Optimization Notes
+## Features
 
-The project includes several production-ready optimizations:
+✅ **Complete CI/CD**
+- GitHub Actions workflow with automated testing and security scanning
+- Jenkins pipeline with multi-stage builds and K8s deployment
+- Container image publishing to GHCR
 
-- **Multi-stage Docker build** — Reduces final image size
-- **Non-root user** — Security best practice (appuser)
-- **Health checks** — Automated container health monitoring
-- **Graceful shutdown** — Proper signal handling (SIGTERM)
-- **Request logging** — Timestamped request logs
-- **Error handling** — Centralized error middleware
-- **NPM caching** — CI caches dependencies for faster builds
-- **Strict linting** — ESLint enforces code quality
-- **Security scanning** — Trivy scans Docker images for vulnerabilities
-- **EditorConfig** — Consistent code formatting across editors
+✅ **Kubernetes Ready**
+- Production manifests with resource limits and health probes
+- Multi-environment support (dev/staging/prod)
+- Ingress configuration with TLS
 
-## CI/CD
+✅ **Monitoring Stack**
+- Prometheus metrics collection
+- Grafana dashboards
+- Container monitoring with cAdvisor
 
-This repository includes GitHub Actions workflow that:
-1. Installs dependencies with offline cache
-2. Runs ESLint linting (fails on errors)
-3. Runs health check tests
-4. Builds Docker image
-5. Scans image with Trivy for vulnerabilities
-6. Uploads security results to GitHub
+✅ **Production Hardened**
+- Multi-stage Docker builds with non-root user
+- Security scanning with Trivy
+- Graceful shutdown and error handling
+- Health checks and readiness probes
 
-## CI
+## Documentation
 
-This repository includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs lint, tests and builds the Docker image on push.
+- 📖 [Architecture](docs/ARCHITECTURE.md) — System design and component overview
+- 🚀 [Deployment Guide](docs/DEPLOY.md) — Deployment instructions and options
+- 🔧 [Jenkins Setup](docs/JENKINS_SETUP.md) — Complete Jenkins CI/CD configuration
+- 💰 [Monetization Strategy](docs/MONETIZATION.md) — Revenue streams and go-to-market plan
+
+## CI/CD Pipelines
+
+### GitHub Actions
+Two workflows included:
+- **CI Pipeline** (`.github/workflows/ci.yml`) — Lint, test, build, security scan on every push
+- **Publish Pipeline** (`.github/workflows/publish.yml`) — Build and push images to GHCR on tags/main
+
+### Jenkins
+Production pipeline (`Jenkinsfile`) includes:
+- Multi-environment support (dev/staging/prod)
+- Automated testing with health checks
+- Docker image building and tagging
+- Security scanning with Trivy
+- Push to GitHub Container Registry
+- Kubernetes deployment
+
+See [docs/JENKINS_SETUP.md](docs/JENKINS_SETUP.md) for complete setup guide.
+
+## Kubernetes Deployment
+
+Deploy to K8s/K3s:
+
+```bash
+kubectl apply -f k8s/deployment.yaml
+kubectl get pods -n devops-lab
+kubectl port-forward -n devops-lab svc/devops-lab-nodeapp 8080:80
+```
 
 ## Contributing
 
