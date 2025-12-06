@@ -25,6 +25,36 @@ print_error() {
     echo -e "${RED}✗${NC} $1"
 }
 
+# Check if kubectl is installed
+if ! command -v kubectl &> /dev/null; then
+    print_error "kubectl is not installed. Please install kubectl first."
+    echo "Install with: curl -LO https://dl.k8s.io/release/\$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    exit 1
+fi
+
+# Check if Kubernetes cluster is accessible
+echo "Checking Kubernetes cluster..."
+if ! kubectl cluster-info &> /dev/null; then
+    print_error "Cannot connect to Kubernetes cluster!"
+    echo ""
+    echo "Please ensure:"
+    echo "1. Kubernetes cluster is running (K3s, minikube, etc.)"
+    echo "2. kubectl is configured with proper credentials"
+    echo ""
+    echo "To install K3s:"
+    echo "  curl -sfL https://get.k3s.io | sh -"
+    echo "  sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config"
+    echo "  sudo chown \$USER ~/.kube/config"
+    exit 1
+fi
+
+print_status "Kubernetes cluster is accessible"
+kubectl cluster-info | head -2
+echo ""
+
+# Use --validate=false to avoid API server issues
+KUBECTL_OPTS="--validate=false"
+
 # Function to wait for pods
 wait_for_pods() {
     local namespace=$1
@@ -75,32 +105,32 @@ restart_not_ready_pods() {
 
 echo "Step 1: Applying Node App manifests..."
 echo "========================================"
-kubectl apply -f k8s/node-app/namespace.yaml
-kubectl apply -f k8s/node-app/configmap.yaml
-kubectl apply -f k8s/node-app/deployment.yaml
-kubectl apply -f k8s/node-app/service.yaml
-kubectl apply -f k8s/node-app/ingress.yaml 2>/dev/null || print_warning "Ingress not applied (controller may not be installed)"
+kubectl apply $KUBECTL_OPTS -f k8s/node-app/namespace.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/node-app/configmap.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/node-app/deployment.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/node-app/service.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/node-app/ingress.yaml 2>/dev/null || print_warning "Ingress not applied (controller may not be installed)"
 print_status "Node App manifests applied"
 echo ""
 
 echo "Step 2: Applying Prometheus manifests..."
 echo "========================================"
-kubectl apply -f k8s/prometheus/namespace.yaml
-kubectl apply -f k8s/prometheus/rbac.yaml
-kubectl apply -f k8s/prometheus/configmap.yaml
-kubectl apply -f k8s/prometheus/pvc.yaml
-kubectl apply -f k8s/prometheus/deployment.yaml
-kubectl apply -f k8s/prometheus/service.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/prometheus/namespace.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/prometheus/rbac.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/prometheus/configmap.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/prometheus/pvc.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/prometheus/deployment.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/prometheus/service.yaml
 print_status "Prometheus manifests applied"
 echo ""
 
 echo "Step 3: Applying Grafana manifests..."
 echo "========================================"
-kubectl apply -f k8s/grafana/secret.yaml
-kubectl apply -f k8s/grafana/configmap.yaml
-kubectl apply -f k8s/grafana/pvc.yaml
-kubectl apply -f k8s/grafana/deployment.yaml
-kubectl apply -f k8s/grafana/service.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/grafana/secret.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/grafana/configmap.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/grafana/pvc.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/grafana/deployment.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/grafana/service.yaml
 print_status "Grafana manifests applied"
 echo ""
 
@@ -151,11 +181,11 @@ echo ""
 
 echo "Step 5: Applying Jenkins manifests..."
 echo "========================================"
-kubectl apply -f k8s/jenkins/namespace.yaml
-kubectl apply -f k8s/jenkins/rbac.yaml
-kubectl apply -f k8s/jenkins/pvc.yaml
-kubectl apply -f k8s/jenkins/deployment.yaml
-kubectl apply -f k8s/jenkins/service.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/jenkins/namespace.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/jenkins/rbac.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/jenkins/pvc.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/jenkins/deployment.yaml
+kubectl apply $KUBECTL_OPTS -f k8s/jenkins/service.yaml
 print_status "Jenkins manifests applied"
 echo ""
 
