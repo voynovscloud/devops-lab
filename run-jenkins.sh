@@ -31,9 +31,9 @@ else
         -v /var/run/docker.sock:/var/run/docker.sock \
         jenkins/jenkins:lts
     
-    echo "⏳ Installing Docker CLI in Jenkins container..."
+    echo "⏳ Installing Docker CLI and Git in Jenkins container..."
     sleep 10
-    docker exec -u root jenkins bash -c "apt-get update && apt-get install -y docker.io"
+    docker exec -u root jenkins bash -c "apt-get update && apt-get install -y docker.io git"
     
     echo "⏳ Waiting for Jenkins to fully start..."
     sleep 20
