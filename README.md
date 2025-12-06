@@ -4,12 +4,12 @@ Complete Kubernetes-based DevOps environment with CI/CD, monitoring, and observa
 
 ## 🎯 Overview
 
-A simplified, production-ready setup featuring:
-- **Node.js Application** with health checks and Prometheus metrics
-- **Jenkins CI/CD** with automated build, test, scan, and deploy pipeline
-- **Prometheus** for metrics collection and monitoring
-- **Grafana** for visualization and dashboards
-- **Kubernetes** deployment with proper resource management
+Production-ready Kubernetes deployment featuring:
+- **Node.js Application** - 3 replicas with health checks and Prometheus metrics
+- **Jenkins CI/CD** - Automated build, test, scan, and deploy pipeline
+- **Prometheus** - Metrics collection and monitoring (10Gi storage)
+- **Grafana** - Visualization dashboards (5Gi storage)
+- **Nginx Ingress** - Direct service access without port-forwarding
 
 ---
 
@@ -63,27 +63,28 @@ devops-lab/
 
 ### Prerequisites
 
-- **Minikube** or **K3s** installed
-- **Docker** installed
-- **kubectl** available (or use `minikube kubectl --`)
+- Minikube or K3s
+- Docker
+- kubectl
 
 ### Deploy Everything
 
 ```bash
-# Clone the repository
+# Clone and deploy
 git clone https://github.com/voynovscloud/devops-lab.git
 cd devops-lab
-
-# Run the deployment script
 ./deploy-k8s.sh
+
+# Setup Ingress
+./setup-ingress.sh
 ```
 
-The script will:
-1. Detect/start Minikube or K3s
-2. Apply all Kubernetes manifests
-3. Fix Grafana permissions
-4. Wait for all pods to be ready
-5. Display access instructions
+The deployment script will:
+1. Start Minikube (if not running)
+2. Build and load Docker images
+3. Apply all Kubernetes manifests
+4. Configure Ingress for direct access
+5. Wait for all pods to be ready
 
 ---
 
