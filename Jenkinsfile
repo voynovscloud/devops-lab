@@ -49,20 +49,42 @@ pipeline {
                     # Start the app from the built image
                     docker run --rm -d --name test-app-${BUILD_NUMBER} -p \${TEST_PORT}:3000 ${APP_NAME}:latest
                     
-                    # Wait for app to be ready
-                    for i in \$(seq 1 30); do
+                    # Check if container started
+                    sleep 2
+                    if ! docker ps | grep -q test-app-${BUILD_NUMBER}; then
+                        echo "Container failed to start!"
+                        docker logs test-app-${BUILD_NUMBER} || true
+                        exit 1
+                    fi
+                    
+                    # Wait for app to be ready (up to 60 seconds)
+                    echo "Waiting for app to start on port \${TEST_PORT}..."
+                    READY=0
+                    for i in \$(seq 1 60); do
                         if curl -sf http://127.0.0.1:\${TEST_PORT}/health >/dev/null 2>&1; then
-                            echo "App is ready on port \${TEST_PORT}"
+                            echo "✓ App is ready on port \${TEST_PORT} (took \${i}s)"
+                            READY=1
                             break
                         fi
-                        echo "Waiting for app... (\${i}/30)"
+                        if [ \$((i % 10)) -eq 0 ]; then
+                            echo "Still waiting... (\${i}/60s)"
+                        fi
                         sleep 1
                     done
                     
-                    # Run a simple health check test
+                    if [ \$READY -eq 0 ]; then
+                        echo "App failed to become ready within 60 seconds"
+                        echo "Container logs:"
+                        docker logs test-app-${BUILD_NUMBER}
+                        docker stop test-app-${BUILD_NUMBER} || true
+                        exit 1
+                    fi
+                    
+                    # Run health check tests
+                    echo "Running health checks..."
                     curl -f http://127.0.0.1:\${TEST_PORT}/health || exit 1
                     curl -f http://127.0.0.1:\${TEST_PORT}/metrics || exit 1
-                    echo "✓ Health and metrics endpoints working"
+                    echo "✓ All health checks passed"
                     
                     # Cleanup
                     docker stop test-app-${BUILD_NUMBER} || true
