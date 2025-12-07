@@ -2,10 +2,21 @@
 
 > Complete DevOps pipeline with Kubernetes, GitOps, IaC, and automated CI/CD
 
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
-[![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?style=flat&logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
-[![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat&logo=terraform&logoColor=white)](https://terraform.io/)
-[![AWS](https://img.shields.io/badge/AWS-FF9900?style=flat&logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
+### Technologies Used
+
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com/)
+[![Helm](https://img.shields.io/badge/Helm-0F1689?style=for-the-badge&logo=helm&logoColor=white)](https://helm.sh/)
+[![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?style=for-the-badge&logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
+[![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)](https://terraform.io/)
+[![AWS](https://img.shields.io/badge/AWS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
+
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/features/actions)
+[![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)](https://jenkins.io/)
+[![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)](https://prometheus.io/)
+[![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)](https://grafana.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org/)
 
 ## 🎯 What This Project Demonstrates
 
@@ -17,7 +28,7 @@
 - Infrastructure as Code with Terraform (AWS EKS + RDS)
 - Monitoring with Prometheus & Grafana
 - Auto-scaling with HPA (Horizontal Pod Autoscaler)
-- CI/CD with GitHub Actions
+- CI/CD with GitHub Actions & Jenkins
 
 ## 🛠️ Tech Stack
 
@@ -26,7 +37,7 @@
 | **Application** | Node.js 18, Express, PostgreSQL 15 |
 | **Containers** | Docker, Kubernetes 1.28, Helm 3 |
 | **GitOps** | ArgoCD (auto-sync, self-healing) |
-| **CI/CD** | GitHub Actions |
+| **CI/CD** | GitHub Actions, Jenkins |
 | **Infrastructure** | Terraform, AWS (VPC, EKS, RDS) |
 | **Monitoring** | Prometheus, Grafana, ServiceMonitor |
 | **Auto-scaling** | HPA (CPU/Memory based) |
@@ -34,25 +45,27 @@
 ## 🏗️ Architecture
 
 ```
-GitHub (Git Push)
+GitHub Repository (Source of Truth)
     ↓
-GitHub Actions CI/CD
-    ├─ Build & Test
-    ├─ Docker Build → ghcr.io
-    └─ Helm Version Bump
-         ↓
+┌───────────────────────┬──────────────────────┐
+│   GitHub Actions      │     Jenkins          │
+│   ├─ Build & Test     │   ├─ Build & Test    │
+│   ├─ Docker → ghcr.io │   ├─ Docker Build    │
+│   └─ Helm Bump        │   └─ Local Deploy    │
+└───────────┬───────────┴──────────────────────┘
+            ↓
 ArgoCD (GitOps - Auto-sync every 3min)
     ↓
-Kubernetes Cluster (EKS/Minikube)
-    ├─ Node App (3 replicas + HPA)
-    ├─ Prometheus (metrics)
-    ├─ Grafana (dashboards)
-    └─ PostgreSQL (RDS)
+Kubernetes Cluster (AWS EKS / Minikube)
+    ├─ Node App (3 replicas + HPA 2-10 pods)
+    ├─ Prometheus (metrics collection, 30s scrape)
+    ├─ Grafana (dashboards & visualization)
+    └─ PostgreSQL (RDS Multi-AZ / Local)
          ↓
-AWS Infrastructure (Terraform)
-    ├─ VPC (2 AZs, NAT Gateways)
-    ├─ EKS Cluster (t3.micro nodes)
-    └─ RDS PostgreSQL (Multi-AZ)
+AWS Infrastructure (Terraform IaC)
+    ├─ VPC (10.0.0.0/16, 2 AZs)
+    ├─ EKS Cluster (t3.micro, 1-2 nodes)
+    └─ RDS PostgreSQL 15.7 (db.t3.micro)
 ```
 
 ## 📂 Project Structure
@@ -170,12 +183,13 @@ helm install my-node-app ./devops-lab-chart \
   --create-namespace \
   --set database.enabled=true \
   --set database.host=$RDS_HOST \
-  --set database.password=$TF_VAR_db_password
-
 # 5. Verify deployment
 kubectl get all -n production
 kubectl get hpa -n production
 ```
+
+> **💰 AWS Cost Estimate:** This deployment costs approximately **$107-120/month** (EKS Control Plane: $75, NAT Gateway: $32, EC2: minimal with Free Tier).  
+> **Recommended:** Deploy for 2-3 days (~$7-10 total) to gather screenshots and experience, then run `terraform destroy` to avoid ongoing charges.
 
 **⚠️ Cost Warning:** AWS deployment costs ~$107-120/month (EKS $75 + NAT $32). Deploy for 2-3 days only (~$7-10) for demo purposes.
 
@@ -216,18 +230,41 @@ kubectl get hpa -n production -w
 - `http_requests_total` - Request counter
 - `http_request_duration_seconds` - Response time
 - `nodejs_heap_size_used_bytes` - Memory usage
-
 ## 🔄 CI/CD Pipeline
 
 ### GitHub Actions Workflows
 
-1. **Build & Test** - Run tests on every push
-2. **Docker Build & Push** - Build image → Push to `ghcr.io/voynovscloud/devops-lab-nodeapp`
-3. **Helm Version Bump** - Auto-increment chart version → ArgoCD auto-deploys
+**Production Pipeline:**
+1. **Build & Test** (`.github/workflows/build.yaml`) - Run tests on every push
+2. **Docker Build & Push** (`.github/workflows/push.yaml`) - Build image → Push to `ghcr.io/voynovscloud/devops-lab-nodeapp`
+3. **Helm Version Bump** (`.github/workflows/helm-update.yaml`) - Auto-increment chart version → ArgoCD auto-deploys
+
+### Jenkins Pipeline (Local Development)
+
+**Development Pipeline** (`Jenkinsfile`):
+1. **Checkout** - Clone repository & get commit SHA
+2. **Build** - Create Docker image with multi-stage build
+3. **Test** - Run health checks & endpoint validation
+4. **Deploy to Minikube** - Apply K8s manifests locally
+5. **Verify** - Check deployment status & pod health
+
+**Jenkins Setup:**
+```bash
+# Run Jenkins in Docker
+docker run -d -p 8080:8080 -p 50000:50000 \
+  -v jenkins_home:/var/jenkins_home \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  --name jenkins jenkins/jenkins:lts
+
+# Get initial admin password
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+```
 
 ### GitOps with ArgoCD
-- **Auto-sync:** Every 3 minutes
-- **Self-healing:** Reverts manual changes
+- **Auto-sync:** Every 3 minutes (polls Git repository)
+- **Self-healing:** Automatically reverts manual changes
+- **Source:** Git repository (single source of truth)
+- **Prune:** Removes deleted resources automatically
 - **Source:** Git repository (single source of truth)
 
 ## 🎯 Key Features
