@@ -14,31 +14,13 @@ module "eks" {
   eks_managed_node_groups = {
     general = {
       name           = "general"
-      instance_types = [var.node_instance_type]
+      instance_types = ["t3.micro"]
 
-      min_size     = var.node_min_size
-      max_size     = var.node_max_size
-      desired_size = var.node_desired_size
+      min_size     = 1
+      max_size     = 2
+      desired_size = 1
 
       iam_role_name            = "eks-general-node-role"
-      iam_role_use_name_prefix = false
-
-      iam_role_additional_policies = {
-        AmazonEBSCSIDriverPolicy = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-      }
-    }
-
-    spot = {
-      name           = "spot"
-      instance_types = [var.node_instance_type]
-
-      min_size     = var.node_min_size
-      max_size     = var.node_max_size
-      desired_size = var.node_desired_size
-
-      capacity_type = "SPOT"
-
-      iam_role_name            = "eks-spot-node-role"
       iam_role_use_name_prefix = false
 
       iam_role_additional_policies = {

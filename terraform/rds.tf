@@ -11,7 +11,7 @@ module "rds" {
   instance_class       = var.db_instance_class
 
   allocated_storage     = 20
-  max_allocated_storage = 100
+  max_allocated_storage = 20
 
   db_name  = var.db_name
   username = var.db_username
@@ -26,7 +26,7 @@ module "rds" {
   skip_final_snapshot    = true
   deletion_protection    = false
 
-  backup_retention_period = 7
+  backup_retention_period = 0
   backup_window           = "03:00-04:00"
   maintenance_window      = "mon:04:00-mon:05:00"
 
