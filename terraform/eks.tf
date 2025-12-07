@@ -13,12 +13,15 @@ module "eks" {
 
   eks_managed_node_groups = {
     general = {
-      name           = "${var.cluster_name}-node-group-1"
+      name           = "general"
       instance_types = [var.node_instance_type]
 
       min_size     = var.node_min_size
       max_size     = var.node_max_size
       desired_size = var.node_desired_size
+
+      iam_role_name            = "eks-general-node-role"
+      iam_role_use_name_prefix = false
 
       iam_role_additional_policies = {
         AmazonEBSCSIDriverPolicy = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
@@ -26,7 +29,7 @@ module "eks" {
     }
 
     spot = {
-      name           = "${var.cluster_name}-node-group-2"
+      name           = "spot"
       instance_types = [var.node_instance_type]
 
       min_size     = var.node_min_size
@@ -34,6 +37,9 @@ module "eks" {
       desired_size = var.node_desired_size
 
       capacity_type = "SPOT"
+
+      iam_role_name            = "eks-spot-node-role"
+      iam_role_use_name_prefix = false
 
       iam_role_additional_policies = {
         AmazonEBSCSIDriverPolicy = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
