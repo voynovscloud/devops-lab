@@ -2,8 +2,8 @@ apiVersion: v2
 name: devops-lab-chart
 description: Production-ready Node.js application with monitoring and observability
 type: application
-version: 1.0.4
-appVersion: "1.0.4"
+version: 1.0.5
+appVersion: "1.0.5"
 
 keywords:
   - nodejs
