@@ -17,8 +17,8 @@ cluster_name = "devops-lab"
 # VPC Configuration (Free Tier)
 vpc_cidr = "10.0.0.0/16"
 
-# Single AZ to avoid NAT Gateway costs
-availability_zones = ["us-east-1a"]
+# Two AZs required by EKS (minimum requirement)
+availability_zones = ["us-east-1a", "us-east-1b"]
 
 # NAT Gateway (required for EKS but costs ~$32/month)
 enable_nat_gateway = true
