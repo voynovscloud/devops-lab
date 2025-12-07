@@ -1,264 +1,376 @@
 # DevOps Lab
 
-**Production-ready Kubernetes environment with GitOps, CI/CD, and observability**
-
-![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-enabled-2088FF?style=flat&logo=githubactions&logoColor=white)
-![CI Status](https://img.shields.io/badge/CI-passing-brightgreen?style=flat&logo=jenkins)
-![Helm Lint](https://img.shields.io/badge/Helm-lint%20passing-0F1689?style=flat&logo=helm)
-![Docker Build](https://img.shields.io/badge/Docker-build%20passing-2496ED?style=flat&logo=docker&logoColor=white)
-![Terraform](https://img.shields.io/badge/Terraform-validated-7B42BC?style=flat&logo=terraform&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS-ready-FF9900?style=flat&logo=amazonaws&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?style=flat&logo=kubernetes&logoColor=white)
+> **A complete DevOps portfolio project showcasing modern cloud-native practices**
 
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?style=flat&logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
 [![Helm](https://img.shields.io/badge/Helm-0F1689?style=flat&logo=helm&logoColor=white)](https://helm.sh/)
 [![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat&logo=prometheus&logoColor=white)](https://prometheus.io/)
 [![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat&logo=grafana&logoColor=white)](https://grafana.com/)
-[![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=flat&logo=jenkins&logoColor=white)](https://www.jenkins.io/)
+[![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat&logo=terraform&logoColor=white)](https://terraform.io/)
+[![AWS](https://img.shields.io/badge/AWS-FF9900?style=flat&logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
 
 ---
 
-## Overview
+## 📋 What Is This Project?
 
-Enterprise-grade Kubernetes environment demonstrating GitOps continuous delivery, infrastructure as code, and observability.
+This is a **real-world DevOps project** that demonstrates how modern applications are deployed and managed in production. It includes:
 
-**Tech Stack:** Kubernetes • ArgoCD • Helm • Jenkins • Prometheus • Grafana • Node.js
+- **A Node.js application** with PostgreSQL database
+- **Automated CI/CD pipelines** (GitHub Actions + Jenkins)
+- **GitOps deployment** with ArgoCD
+- **Infrastructure as Code** with Terraform (AWS)
+- **Monitoring & Observability** with Prometheus and Grafana
+- **Auto-scaling** based on CPU and memory usage
 
-### Architecture
+## 🎯 What I Learned
+
+- How to containerize applications with Docker
+- Setting up Kubernetes clusters locally and on AWS
+- Implementing GitOps workflows with ArgoCD
+- Building CI/CD pipelines with GitHub Actions
+- Managing infrastructure as code with Terraform
+- Setting up monitoring and alerting systems
+- Configuring auto-scaling for production workloads
+
+## 🏗️ Architecture
 
 ```
-GitHub (Source of Truth)
-    ↓
-ArgoCD (GitOps Engine)
-    ↓
-Kubernetes Cluster
-├── Node App (3 replicas)
-├── Prometheus (Monitoring)
-├── Grafana (Dashboards)
-└── Nginx Ingress Controller
+┌─────────────────────────────────────────────────────────────┐
+│                         GitHub                              │
+│                   (Source of Truth)                         │
+└────────────┬────────────────────────────────────────────────┘
+             │
+             │ Git Push
+             ▼
+┌────────────────────────────────────────────────────────────┐
+│                    CI/CD Pipeline                           │
+│  ┌──────────────┐         ┌─────────────┐                  │
+│  │ GitHub       │         │  Jenkins    │                  │
+│  │ Actions      │────────▶│  Pipeline   │                  │
+│  │ (Build/Test) │         │  (Deploy)   │                  │
+│  └──────────────┘         └─────────────┘                  │
+└────────────┬───────────────────────────────────────────────┘
+             │
+             │ Auto Deploy
+             ▼
+┌────────────────────────────────────────────────────────────┐
+│                   Kubernetes Cluster                        │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  ArgoCD (GitOps Engine)                              │  │
+│  │  Automatically syncs Git → Kubernetes                │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌─────────────┐  ┌──────────────┐  ┌─────────────────┐  │
+│  │ Node.js App │  │ PostgreSQL   │  │ Monitoring      │  │
+│  │ (3 replicas)│◀─│ Database     │  │ (Prometheus +   │  │
+│  │ Auto-scales │  │ (RDS on AWS) │  │  Grafana)       │  │
+│  └─────────────┘  └──────────────┘  └─────────────────┘  │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Quick Start
+## 🚀 Quick Start (Local Development)
 
 ### Prerequisites
 
-- Kubernetes cluster (Minikube/K3s)
-- kubectl configured
-- Helm 3
-- Docker
+You need these installed:
+- **Docker** - For containerization
+- **Minikube** - Local Kubernetes cluster  
+- **kubectl** - Kubernetes command-line tool
+- **Helm** - Kubernetes package manager
 
-### Deploy
+### Step 1: Clone the Repository
 
 ```bash
-# Clone repository
 git clone https://github.com/voynovscloud/devops-lab.git
 cd devops-lab
+```
 
-# Deploy infrastructure
+### Step 2: Start Minikube
+
+```bash
+# Start Minikube with enough resources
+minikube start --cpus=4 --memory=8192 --disk-size=20g
+
+# Enable required addons
+minikube addons enable ingress
+minikube addons enable metrics-server
+```
+
+### Step 3: Deploy with One Command
+
+```bash
+# This script does everything:
+# - Builds Docker image
+# - Creates namespace
+# - Deploys app with Helm
+# - Sets up monitoring
 ./deploy-k8s.sh
+```
 
+### Step 4: Install ArgoCD (GitOps)
+
+```bash
 # Install ArgoCD
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-# Configure ArgoCD for HTTP access
+# Configure for HTTP access (simpler for local dev)
 kubectl patch configmap argocd-cmd-params-cm -n argocd --type merge -p '{"data":{"server.insecure":"true"}}'
 kubectl rollout restart deployment argocd-server -n argocd
+
+# Apply Ingress for easy access
 kubectl apply -f k8s/argocd-ingress.yaml
 
-# Setup Ingress
-sudo bash -c "cat >> /etc/hosts << EOF
-$(minikube ip) app.local
-$(minikube ip) grafana.local
-$(minikube ip) prometheus.local
-$(minikube ip) argocd.local
-EOF"
-
-# Deploy application via GitOps
+# Deploy app via ArgoCD
 kubectl apply -f argocd/application.yaml
+```
+
+### Step 5: Add Hostnames
+
+```bash
+# Get Minikube IP
+minikube ip
+
+# Add to /etc/hosts (replace <MINIKUBE-IP> with actual IP)
+sudo bash -c "cat >> /etc/hosts << EOF
+<MINIKUBE-IP> app.local
+<MINIKUBE-IP> grafana.local
+<MINIKUBE-IP> prometheus.local
+<MINIKUBE-IP> argocd.local
+EOF"
 ```
 
 ---
 
-## Access Services
+## 🌐 Access Your Services
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| **Node App** | http://app.local | - |
-| **ArgoCD** | http://argocd.local | admin / (see below) |
-| **Grafana** | http://grafana.local | admin / admin |
-| **Prometheus** | http://prometheus.local | - |
-| **Jenkins** | http://localhost:8081 | (Docker) |
+Once everything is running, you can access:
+
+| Service | URL | Login |
+|---------|-----|-------|
+| **Your App** | http://app.local | No login needed |
+| **ArgoCD** | http://argocd.local | `admin` / See below |
+| **Grafana** | http://grafana.local | `admin` / `admin` |
+| **Prometheus** | http://prometheus.local | No login needed |
+| **Jenkins** | http://localhost:8081 | See below |
+
+### Get Passwords
 
 ```bash
-# Get ArgoCD password
+# ArgoCD password
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+echo  # Just adds a new line
 
-# Get Jenkins password
+# Jenkins password (if running Jenkins)
 docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
 ---
 
-## GitOps Workflow
+## 🔄 How GitOps Works
 
-Changes pushed to Git are automatically deployed to Kubernetes via ArgoCD:
+**GitOps means: Git is your single source of truth**
+
+1. **You make changes** in Git (like editing `values.yaml`)
+2. **Push to GitHub**
+3. **ArgoCD notices the change** (checks every 3 minutes)
+4. **Automatically updates Kubernetes** to match Git
+
+### Example: Change the number of replicas
 
 ```bash
-# Edit Helm values
+# Edit the Helm values file
 vim devops-lab-chart/values.yaml
+# Change: replicaCount: 3  →  replicaCount: 5
 
 # Commit and push
 git add devops-lab-chart/values.yaml
-git commit -m "Update configuration"
+git commit -m "Scale app to 5 replicas"
 git push origin main
 
-# ArgoCD syncs automatically within 3 minutes
+# Wait 1-3 minutes, then check:
+kubectl get pods -n devops-lab
+# You'll see 5 pods running!
 ```
+
+**Why is this powerful?**
+- ✅ All changes are tracked in Git (audit trail)
+- ✅ Easy rollback (just revert the Git commit)
+- ✅ No manual kubectl commands needed
+- ✅ Team collaboration through pull requests
 
 ---
 
-## Helm Deployment
+## 📦 Technology Stack
 
-```bash
-# Install
-helm install devops-lab ./devops-lab-chart
+### Application
+- **Node.js** - Backend runtime
+- **Express** - Web framework
+- **PostgreSQL** - Database (RDS on AWS)
+- **Prometheus Client** - Metrics collection
 
-# Upgrade
-helm upgrade devops-lab ./devops-lab-chart --set replicaCount=5
+### DevOps Tools
+- **Docker** - Containerization
+- **Kubernetes** - Container orchestration
+- **Helm** - Kubernetes package manager
+- **ArgoCD** - GitOps continuous delivery
+- **Terraform** - Infrastructure as code
 
-# Rollback
-helm rollback devops-lab
-```
+### CI/CD
+- **GitHub Actions** - Automated testing and builds
+- **Jenkins** - Deployment pipeline (optional)
 
----
-
-## CI/CD Pipeline
-
-Jenkins pipeline with automated stages:
-
-1. **Checkout** - Clone from Git
-2. **Build** - Build Docker image
-3. **Test** - Health checks and unit tests
-4. **Security Scan** - Trivy vulnerability scanning
-5. **Deploy** - Deploy to Kubernetes
-
-```bash
-# Start Jenkins
-./run-jenkins.sh
-```
+### Monitoring
+- **Prometheus** - Metrics collection and storage
+- **Grafana** - Metrics visualization and dashboards
 
 ---
 
-## Monitoring
+## 🔧 Project Components Explained
 
-### Local (Minikube)
-- **Prometheus**: Metrics collection with auto-discovery (http://prometheus.local)
-- **Grafana**: Dashboard visualization with pre-configured datasource (http://grafana.local)
+### 1. Node.js Application (`my-node-app/`)
+A simple Express server with:
+- Health check endpoint (`/health`)
+- Database connectivity test (`/db-test`)
+- Prometheus metrics (`/metrics`)
 
-### Production (EKS)
+### 2. Helm Chart (`devops-lab-chart/`)
+Packages everything needed to run the app in Kubernetes:
+- Deployment (how many replicas)
+- Service (networking)
+- Ingress (external access)
+- ConfigMaps (configuration)
 
-Install kube-prometheus-stack:
+### 3. Kubernetes Manifests (`k8s/`)
+Raw Kubernetes YAML files for:
+- Prometheus monitoring setup
+- Grafana dashboards
+- HPA (auto-scaling rules)
+
+### 4. Terraform (`terraform/`)
+Defines AWS infrastructure:
+- VPC with public/private subnets
+- EKS cluster (managed Kubernetes)
+- RDS PostgreSQL database
+
+### 5. ArgoCD (`argocd/`)
+GitOps configuration that:
+- Watches Git repository
+- Automatically deploys changes
+- Keeps Kubernetes in sync with Git
+
+---
+
+## 📊 Monitoring & Observability
+
+The project includes full monitoring with Prometheus and Grafana.
+
+### What Gets Monitored?
+- **Application metrics** (requests, response times, errors)
+- **Database connections** (health, pool size)
+- **Kubernetes metrics** (CPU, memory, pod count)
+- **Auto-scaling events** (when pods scale up/down)
+
+### Access Dashboards
 
 ```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --create-namespace \
-  --set nodeExporter.enabled=true \
-  --set kubeStateMetrics.enabled=true \
-  --set grafana.enabled=true
+# Local development
+# After running ./deploy-k8s.sh:
+# - Prometheus: http://prometheus.local
+# - Grafana: http://grafana.local (admin/admin)
 
-# Access Grafana
+# Production (AWS)
+# Port-forward to access from your machine:
 kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
+# Then open: http://localhost:3000
 ```
-
-See [k8s/prometheus/HELM_INSTALL.md](k8s/prometheus/HELM_INSTALL.md) for detailed configuration.
 
 ---
 
-## Autoscaling
+## ⚡ Auto-Scaling
 
-Horizontal Pod Autoscaler configured for automatic scaling:
+The application automatically scales based on load:
 
-- **Min Replicas**: 2
-- **Max Replicas**: 10
-- **CPU Target**: 60%
-- **Memory Target**: 70%
+| Setting | Value |
+|---------|-------|
+| **Minimum Pods** | 2 |
+| **Maximum Pods** | 10 |
+| **Scale Up When** | CPU > 60% or Memory > 70% |
+| **Scale Down When** | CPU < 60% and Memory < 70% (after 5 min) |
 
 ```bash
-# Apply HPA
-kubectl apply -f k8s/node-app/hpa.yaml
+# Watch auto-scaling in action
+kubectl get hpa -n devops-lab -w
 
-# Check HPA status
-kubectl get hpa -n devops-lab
+# Generate load to trigger scaling
+kubectl run -it load-generator --rm --image=busybox --restart=Never -- /bin/sh -c "while true; do wget -q -O- http://app-service.devops-lab.svc.cluster.local; done"
 ```
 
 ---
 
-## CI/CD with GitHub Actions
+## 🚀 CI/CD Pipeline
 
-Automated workflows for continuous integration and deployment:
+### GitHub Actions (Automated)
 
-### Workflows
+Every time you push code, GitHub Actions automatically:
 
-1. **build.yaml** - Build, test, and validate Docker images
-2. **push.yaml** - Push images to GitHub Container Registry
-3. **helm-update.yaml** - Auto-bump Helm chart versions
+1. **Builds** the Docker image
+2. **Runs tests** to ensure everything works
+3. **Scans for vulnerabilities** 
+4. **Pushes image** to GitHub Container Registry
+5. **Updates Helm chart** version
 
-### Setup
+No manual work needed! Just push your code.
 
-Enable GitHub Actions in your repository. Workflows run automatically on push to main branch.
+### View Pipeline Status
+
+Check `.github/workflows/` folder or visit:
+`https://github.com/YOUR-USERNAME/devops-lab/actions`
 
 ---
 
-## AWS Deployment with Terraform
+## ☁️ Deploy to AWS (Production)
 
-Deploy to production AWS infrastructure with EKS, VPC, and RDS.
-
-### Infrastructure
-
-- **VPC**: 2 public + 2 private subnets across AZs
-- **EKS Cluster**: Kubernetes 1.28 with 2 node groups (t3.medium)
-- **RDS PostgreSQL**: db.t3.micro with automated backups
-
-### Deploy to AWS
+Want to deploy to real AWS infrastructure?
 
 ```bash
 cd terraform
 
-# Initialize
-terraform init
+# 1. Configure AWS credentials
+aws configure
 
-# Set database password
+# 2. Set database password
 export TF_VAR_db_password="YourSecurePassword123!"
 
-# Deploy infrastructure (~30 minutes)
+# 3. Review what will be created
+terraform plan
+
+# 4. Create infrastructure (takes ~30 minutes)
 terraform apply
 
-# Configure kubectl
+# 5. Configure kubectl to use new cluster
 aws eks update-kubeconfig --region eu-central-1 --name devops-lab
 
-# Deploy application with database
-export RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
-export DB_NAME=$(terraform output -raw rds_database_name)
-
-helm install devops-lab ../devops-lab-chart \
-  --set database.enabled=true \
-  --set database.host="${RDS_ENDPOINT%%:*}" \
-  --set database.name="${DB_NAME}" \
-  --set database.user="dbadmin" \
-  --set database.password="${TF_VAR_db_password}"
+# 6. Deploy application
+cd ..
+helm install devops-lab ./devops-lab-chart
 ```
 
-**Cost**: ~$184-244/month  
-**Deployment time**: ~30 minutes
+**Costs:** Approximately $180-240/month for:
+- EKS cluster
+- RDS PostgreSQL database
+- NAT Gateway
+- Load balancers
 
-See [terraform/README.md](terraform/README.md) for detailed instructions.
+See [`terraform/README.md`](terraform/README.md) for detailed instructions.
+
+---
+
+
 
 ---
 
