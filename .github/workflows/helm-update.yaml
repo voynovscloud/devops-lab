@@ -26,6 +26,7 @@ jobs:
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
     - name: Bump Helm chart version
+      id: bump
       run: |
         cd devops-lab-chart
         CURRENT_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
@@ -34,10 +35,11 @@ jobs:
         NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
         sed -i "s/^version:.*/version: ${NEW_VERSION}/" Chart.yaml
         sed -i "s/^appVersion:.*/appVersion: \"${NEW_VERSION}\"/" Chart.yaml
-        echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
+        echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_OUTPUT
+        echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
 
     - name: Commit and push
       run: |
         git add devops-lab-chart/Chart.yaml
-        git commit -m "chore: bump Helm chart version to ${{ env.NEW_VERSION }} [skip ci]" || exit 0
+        git commit -m "chore: bump Helm chart version to ${{ steps.bump.outputs.version }} [skip ci]" || exit 0
         git push
