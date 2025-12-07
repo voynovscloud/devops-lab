@@ -1,0 +1,266 @@
+{
+  "dashboard": {
+    "title": "DevOps Lab - Application Monitoring",
+    "tags": ["nodejs", "kubernetes", "devops-lab"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Application Health",
+        "type": "stat",
+        "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "up{job=\"kubernetes-pods\", pod=~\".*node-app.*\"}",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "options": { "0": { "text": "DOWN", "color": "red" } }, "type": "value" },
+              { "options": { "1": { "text": "UP", "color": "green" } }, "type": "value" }
+            ]
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Pod Count",
+        "type": "stat",
+        "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "count(up{job=\"kubernetes-pods\", pod=~\".*node-app.*\"} == 1)"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 3,
+        "title": "HTTP Request Rate",
+        "type": "stat",
+        "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[5m]))"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "unit": "reqps"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Error Rate (%)",
+        "type": "stat",
+        "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "(sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))) * 100"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "background"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 1, "color": "yellow" },
+                { "value": 5, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "HTTP Requests by Status Code",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[5m])) by (status)",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Response Time (95th percentile)",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, pod))",
+            "legendFormat": "{{pod}} - p95"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, pod))",
+            "legendFormat": "{{pod}} - p50"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "CPU Usage by Pod",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\".*node-app.*\"}[5m])) by (pod) * 100",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {
+              "fillOpacity": 20
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Memory Usage by Pod",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum(container_memory_working_set_bytes{pod=~\".*node-app.*\"}) by (pod) / 1024 / 1024",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "MiB",
+            "custom": {
+              "fillOpacity": 20
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Node.js Heap Memory",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "nodejs_heap_size_used_bytes{pod=~\".*node-app.*\"} / 1024 / 1024",
+            "legendFormat": "{{pod}} - Used"
+          },
+          {
+            "expr": "nodejs_heap_size_total_bytes{pod=~\".*node-app.*\"} / 1024 / 1024",
+            "legendFormat": "{{pod}} - Total"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "MiB"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Event Loop Lag",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "nodejs_eventloop_lag_seconds{pod=~\".*node-app.*\"}",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "HPA Status",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~\".*node-app.*\"}",
+            "legendFormat": "Current Replicas"
+          },
+          {
+            "expr": "kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~\".*node-app.*\"}",
+            "legendFormat": "Desired Replicas"
+          },
+          {
+            "expr": "kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler=~\".*node-app.*\"}",
+            "legendFormat": "Max Replicas"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line"
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "Network I/O",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(container_network_receive_bytes_total{pod=~\".*node-app.*\"}[5m])) by (pod) / 1024",
+            "legendFormat": "{{pod}} - RX"
+          },
+          {
+            "expr": "sum(rate(container_network_transmit_bytes_total{pod=~\".*node-app.*\"}[5m])) by (pod) / 1024",
+            "legendFormat": "{{pod}} - TX"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "KBs"
+          }
+        }
+      }
+    ]
+  }
+}

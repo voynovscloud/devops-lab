@@ -1,0 +1,52 @@
+# Staging Environment Overrides
+# Deploy with: helm install -f values.yaml -f values-staging.yaml
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/voynovscloud/devops-lab-nodeapp
+  pullPolicy: IfNotPresent
+  tag: "staging"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 75
+
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+  hosts:
+    - host: app-staging.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: node-app-staging-tls
+      hosts:
+        - app-staging.example.com
+
+config:
+  nodeEnv: "staging"
+  logLevel: "info"
+
+database:
+  enabled: true
+  host: "staging-db.example.com"
+  port: "5432"
+  name: "appdb_staging"
+  ssl: "require"
+
+namespace:
+  name: staging

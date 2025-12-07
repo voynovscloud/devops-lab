@@ -1,0 +1,38 @@
+# Development Environment Overrides
+# Deploy with: helm install -f values.yaml -f values-dev.yaml
+
+replicaCount: 1
+
+image:
+  pullPolicy: Never
+  tag: "latest"
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+autoscaling:
+  enabled: false
+
+ingress:
+  enabled: true
+  hosts:
+    - host: app-dev.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+config:
+  nodeEnv: "development"
+  logLevel: "debug"
+
+database:
+  enabled: false
+
+namespace:
+  name: dev

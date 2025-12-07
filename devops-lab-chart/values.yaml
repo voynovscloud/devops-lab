@@ -1,123 +1,352 @@
-# Default values for devops-lab-chart
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# ============================================================================
+# DevOps Lab Helm Chart - Default Values
+# ============================================================================
+# This file contains all configurable parameters for the DevOps Lab application
+# Override these values for different environments (dev/staging/prod)
+# ============================================================================
 
+# ============================================================================
+# DEPLOYMENT CONFIGURATION
+# ============================================================================
+
+# Number of application replicas (pods) to run
+# - Dev: 1-2 replicas for cost savings
+# - Staging: 2-3 replicas for testing HA
+# - Production: 3+ replicas for high availability
 replicaCount: 3
 
+# ============================================================================
+# CONTAINER IMAGE CONFIGURATION
+# ============================================================================
+
 image:
+  # Docker image repository
+  # For local: devops-lab-nodeapp
+  # For registry: ghcr.io/voynovscloud/devops-lab-nodeapp
   repository: devops-lab-nodeapp
+  
+  # Image pull policy
+  # - Never: Use local images (Minikube)
+  # - IfNotPresent: Pull if not cached (development)
+  # - Always: Always pull latest (production with tags)
   pullPolicy: Never
+  
+  # Image tag (version)
+  # Use semantic versioning in production (e.g., "1.0.0")
+  # Avoid "latest" in production
   tag: "latest"
 
+# Secrets for pulling from private registries
+# Example: GitHub Container Registry (ghcr.io)
 imagePullSecrets: []
+# - name: ghcr-secret
+
+# Override chart name if needed
 nameOverride: ""
 fullnameOverride: ""
 
+# ============================================================================
+# SERVICE ACCOUNT & RBAC
+# ============================================================================
+
 serviceAccount:
+  # Create a dedicated service account for the application
+  # Set to true if your app needs Kubernetes API access
   create: false
+  
+  # Annotations for the service account (e.g., IAM roles for AWS)
   annotations: {}
+  # Example for AWS EKS:
+  # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/ROLE_NAME
+  
+  # Service account name (auto-generated if empty)
   name: ""
 
+# ============================================================================
+# POD CONFIGURATION
+# ============================================================================
+
+# Annotations for pods (used by Prometheus for metrics scraping)
 podAnnotations:
-  prometheus.io/scrape: "true"
-  prometheus.io/port: "3000"
-  prometheus.io/path: "/metrics"
+  prometheus.io/scrape: "true"   # Enable Prometheus scraping
+  prometheus.io/port: "3000"     # Port where metrics are exposed
+  prometheus.io/path: "/metrics" # Metrics endpoint path
 
+# Pod-level security settings
 podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
+  runAsNonRoot: true  # Prevent running as root user (security best practice)
+  runAsUser: 1000     # Run as user ID 1000 (matches Dockerfile USER)
+  fsGroup: 1000       # File system group for volume permissions
 
+# Container-level security settings
 securityContext:
-  allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false # Prevent privilege escalation
+  readOnlyRootFilesystem: false   # Allow writes to container filesystem
+  runAsNonRoot: true              # Enforce non-root at container level
   capabilities:
     drop:
-    - ALL
+    - ALL                         # Drop all Linux capabilities (minimal permissions)
+
+# ============================================================================
+# SERVICE CONFIGURATION
+# ============================================================================
 
 service:
+  # Service type
+  # - ClusterIP: Internal cluster access only (default, most secure)
+  # - NodePort: Expose on each node's IP (development)
+  # - LoadBalancer: Cloud load balancer (production on AWS/GCP/Azure)
   type: ClusterIP
+  
+  # Service port (external, what other services/ingress will use)
   port: 80
+  
+  # Container port (where your app listens inside the pod)
   targetPort: 3000
+  
+  # Protocol
   protocol: TCP
 
+# ============================================================================
+# INGRESS CONFIGURATION (HTTP/HTTPS Routing)
+# ============================================================================
+
 ingress:
+  # Enable ingress for HTTP/HTTPS access
   enabled: true
+  
+  # Ingress controller class
+  # - nginx: NGINX Ingress Controller (most common)
+  # - alb: AWS Application Load Balancer
   className: "nginx"
+  
+  # Ingress annotations for additional features
   annotations:
+    # SSL/TLS certificate management (requires cert-manager)
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # Force HTTPS redirect
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # Rate limiting (optional)
+    # nginx.ingress.kubernetes.io/limit-rps: "100"
+    
+  # Hosts and paths configuration
   hosts:
-    - host: app.local
+    - host: app.local  # Change to your domain in production
       paths:
         - path: /
           pathType: Prefix
+          
+  # TLS/SSL configuration
   tls:
-    - secretName: node-app-tls
+    - secretName: node-app-tls  # Kubernetes secret containing TLS cert
       hosts:
         - app.local
 
+# ============================================================================
+# RESOURCE LIMITS & REQUESTS
+# ============================================================================
+# Define CPU and memory allocation for pods
+# Requests: Guaranteed resources (used for scheduling)
+# Limits: Maximum resources allowed (prevents resource hogging)
+
 resources:
   limits:
-    cpu: 500m
-    memory: 256Mi
+    cpu: 500m      # 0.5 CPU core maximum
+    memory: 512Mi  # 512 MiB maximum memory
   requests:
-    cpu: 100m
-    memory: 128Mi
+    cpu: 100m      # 0.1 CPU core guaranteed
+    memory: 128Mi  # 128 MiB guaranteed memory
 
+# Resource recommendations by environment:
+# Dev:        requests(50m, 64Mi)   limits(200m, 256Mi)
+# Staging:    requests(100m, 128Mi) limits(500m, 512Mi)
+# Production: requests(200m, 256Mi) limits(1000m, 1Gi)
+
+# ============================================================================
+# HEALTH CHECKS (Probes)
+# ============================================================================
+
+# Liveness Probe: Checks if container is alive
+# If fails, Kubernetes will restart the container
 livenessProbe:
   httpGet:
-    path: /health
-    port: 3000
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
+    path: /health          # Health check endpoint
+    port: 3000            # Container port
+  initialDelaySeconds: 15 # Wait 15s after container starts
+  periodSeconds: 10       # Check every 10 seconds
+  timeoutSeconds: 5       # Timeout after 5 seconds
+  failureThreshold: 3     # Restart after 3 consecutive failures
+  successThreshold: 1     # Consider healthy after 1 success
 
+# Readiness Probe: Checks if container is ready to serve traffic
+# If fails, pod is removed from service endpoints (no traffic sent)
 readinessProbe:
   httpGet:
-    path: /health
-    port: 3000
-  initialDelaySeconds: 5
-  periodSeconds: 5
-  timeoutSeconds: 3
-  failureThreshold: 3
+    path: /health          # Health check endpoint
+    port: 3000            # Container port
+  initialDelaySeconds: 5  # Start checking after 5s
+  periodSeconds: 5        # Check every 5 seconds
+  timeoutSeconds: 3       # Timeout after 3 seconds
+  failureThreshold: 3     # Mark not ready after 3 failures
+  successThreshold: 1     # Mark ready after 1 success
+
+# Startup Probe (optional): For slow-starting containers
+# Disables liveness/readiness checks until app starts
+# startupProbe:
+#   httpGet:
+#     path: /health
+#     port: 3000
+#   failureThreshold: 30
+#   periodSeconds: 10
+
+# ============================================================================
+# AUTOSCALING (HPA - Horizontal Pod Autoscaler)
+# ============================================================================
 
 autoscaling:
-  enabled: false
+  # Enable horizontal pod autoscaling
+  # Requires metrics-server to be installed in cluster
+  enabled: true
+  
+  # Minimum number of replicas (never scale below this)
   minReplicas: 2
+  
+  # Maximum number of replicas (never scale above this)
   maxReplicas: 10
-  targetCPUUtilizationPercentage: 80
-  targetMemoryUtilizationPercentage: 80
+  
+  # Target CPU utilization percentage (scale up if exceeded)
+  # Scale up when average CPU usage across pods exceeds 60%
+  targetCPUUtilizationPercentage: 60
+  
+  # Target memory utilization percentage (scale up if exceeded)
+  # Scale up when average memory usage across pods exceeds 70%
+  targetMemoryUtilizationPercentage: 70
 
+# Recommendations by environment:
+# Dev:        min=1, max=3,  cpu=80%, memory=80%
+# Staging:    min=2, max=5,  cpu=70%, memory=75%
+# Production: min=3, max=10, cpu=60%, memory=70%
+
+# ============================================================================
+# POD SCHEDULING (Node Selection & Affinity)
+# ============================================================================
+
+# Node selector: Run pods only on nodes with specific labels
+# Example: nodeSelector: { disktype: ssd, region: us-east-1a }
 nodeSelector: {}
 
+# Tolerations: Allow pods on nodes with specific taints
+# Example for GPU nodes:
+# tolerations:
+#   - key: "nvidia.com/gpu"
+#     operator: "Exists"
+#     effect: "NoSchedule"
 tolerations: []
 
+# Affinity rules: Advanced pod scheduling
+# Pod anti-affinity ensures pods run on different nodes (HA)
 affinity: {}
+# Example anti-affinity (spread pods across nodes):
+# affinity:
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#     - weight: 100
+#       podAffinityTerm:
+#         labelSelector:
+#           matchExpressions:
+#           - key: app
+#             operator: In
+#             values:
+#             - devops-lab-nodeapp
+#         topologyKey: kubernetes.io/hostname
 
-# Application configuration
+# ============================================================================
+# APPLICATION ENVIRONMENT VARIABLES
+# ============================================================================
+
 config:
+  # Node.js environment
+  # - development: Verbose logging, debugging enabled
+  # - production: Optimized, minimal logging
   nodeEnv: "production"
-
-# Database configuration
-database:
-  enabled: false
-  host: ""
-  port: "5432"
-  name: ""
-  user: ""
-  password: ""
-  ssl: "false"
+  
+  # Application port (should match Dockerfile EXPOSE)
+  port: "3000"
+  
+  # Log level (error, warn, info, debug, trace)
   logLevel: "info"
 
-# Deployment strategy
-strategy:
-  type: RollingUpdate
-  rollingUpdate:
-    maxSurge: 1
-    maxUnavailable: 1
+# ============================================================================
+# DATABASE CONFIGURATION (PostgreSQL)
+# ============================================================================
+# Credentials are stored in Kubernetes Secret for security
+# Values here are used to create the secret
 
-# Namespace configuration
+database:
+  # Enable database connectivity
+  # Set to true when using RDS or external PostgreSQL
+  enabled: false
+  
+  # Database host/endpoint
+  # Local: postgresql-service (Kubernetes service)
+  # AWS: RDS endpoint from Terraform output
+  host: ""
+  
+  # Database port
+  port: "5432"
+  
+  # Database name
+  name: "appdb"
+  
+  # Database username
+  # SECURITY: Use secrets management in production
+  user: ""
+  
+  # Database password
+  # SECURITY: Store in Kubernetes secret, not in values.yaml
+  # Inject via: --set database.password=$DB_PASSWORD
+  password: ""
+  
+  # Enable SSL connection
+  ssl: "require"  # Options: disable, allow, prefer, require
+  
+  # Connection pool settings
+  poolMin: 2
+  poolMax: 10
+  
+  # Query timeout (milliseconds)
+  queryTimeout: 30000
+
+# ============================================================================
+# DEPLOYMENT STRATEGY
+# ============================================================================
+
+strategy:
+  # Rolling update: Gradually replace old pods with new ones
+  type: RollingUpdate
+  
+  rollingUpdate:
+    # Maximum number of pods above desired count during update
+    maxSurge: 1
+    
+    # Maximum number of pods unavailable during update
+    # Set to 0 for zero-downtime deployments (requires minReplicas >= 2)
+    maxUnavailable: 0
+
+# Alternative strategies:
+# - Recreate: Stop all old pods, then create new ones (downtime)
+# - Blue/Green: Deploy complete new version, then switch traffic
+
+# ============================================================================
+# NAMESPACE CONFIGURATION
+# ============================================================================
+
 namespace:
+  # Create namespace if it doesn't exist
   create: true
-  name: devops-lab
+  
+  # Namespace name
+  # Separate namespaces per environment: dev, staging, production
+  name: production

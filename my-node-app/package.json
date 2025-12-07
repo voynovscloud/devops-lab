@@ -7,7 +7,9 @@
     "dev": "nodemon server.js",
     "build": "echo 'App is pre-built. No build step needed.'",
     "lint": "eslint .",
-    "test": "node test.js"
+    "test": "node test.js",
+    "test:integration": "node test-integration.js",
+    "test:all": "npm test && npm run test:integration"
   },
   "dependencies": {
     "express": "^4.22.1",
