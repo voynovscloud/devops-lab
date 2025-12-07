@@ -5,8 +5,8 @@
 # Note: EKS control plane is NOT free ($0.10/hour = ~$75/month)
 # ============================================================================
 
-# Region (use us-east-1 for best Free Tier availability)
-region = "us-east-1"
+# Region (EU Frankfurt)
+region = "eu-central-1"
 
 # Environment
 environment = "dev"
@@ -18,7 +18,7 @@ cluster_name = "devops-lab"
 vpc_cidr = "10.0.0.0/16"
 
 # Two AZs required by EKS (minimum requirement)
-availability_zones = ["us-east-1a", "us-east-1b"]
+availability_zones = ["eu-central-1a", "eu-central-1b"]
 
 # NAT Gateway (required for EKS but costs ~$32/month)
 enable_nat_gateway = true
