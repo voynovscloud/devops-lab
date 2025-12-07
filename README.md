@@ -2,6 +2,7 @@
 
 **Production-ready Kubernetes environment with GitOps, CI/CD, and observability**
 
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-enabled-2088FF?style=flat&logo=githubactions&logoColor=white)
 ![CI Status](https://img.shields.io/badge/CI-passing-brightgreen?style=flat&logo=jenkins)
 ![Helm Lint](https://img.shields.io/badge/Helm-lint%20passing-0F1689?style=flat&logo=helm)
 ![Docker Build](https://img.shields.io/badge/Docker-build%20passing-2496ED?style=flat&logo=docker&logoColor=white)
@@ -155,8 +156,63 @@ Jenkins pipeline with automated stages:
 
 ## Monitoring
 
+### Local (Minikube)
 - **Prometheus**: Metrics collection with auto-discovery (http://prometheus.local)
 - **Grafana**: Dashboard visualization with pre-configured datasource (http://grafana.local)
+
+### Production (EKS)
+
+Install kube-prometheus-stack:
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm install prometheus prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace \
+  --set nodeExporter.enabled=true \
+  --set kubeStateMetrics.enabled=true \
+  --set grafana.enabled=true
+
+# Access Grafana
+kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
+```
+
+See [k8s/prometheus/HELM_INSTALL.md](k8s/prometheus/HELM_INSTALL.md) for detailed configuration.
+
+---
+
+## Autoscaling
+
+Horizontal Pod Autoscaler configured for automatic scaling:
+
+- **Min Replicas**: 2
+- **Max Replicas**: 10
+- **CPU Target**: 60%
+- **Memory Target**: 70%
+
+```bash
+# Apply HPA
+kubectl apply -f k8s/node-app/hpa.yaml
+
+# Check HPA status
+kubectl get hpa -n devops-lab
+```
+
+---
+
+## CI/CD with GitHub Actions
+
+Automated workflows for continuous integration and deployment:
+
+### Workflows
+
+1. **build.yaml** - Build, test, and validate Docker images
+2. **push.yaml** - Push images to GitHub Container Registry
+3. **helm-update.yaml** - Auto-bump Helm chart versions
+
+### Setup
+
+Enable GitHub Actions in your repository. Workflows run automatically on push to main branch.
 
 ---
 
@@ -210,12 +266,20 @@ See [terraform/README.md](terraform/README.md) for detailed instructions.
 
 ```
 devops-lab/
+├── .github/workflows/     # GitHub Actions CI/CD
+│   ├── build.yaml         # Build and test workflow
+│   ├── push.yaml          # Docker image push workflow
+│   └── helm-update.yaml   # Helm version bump workflow
 ├── my-node-app/           # Node.js Express application with PostgreSQL support
 ├── devops-lab-chart/      # Helm chart for GitOps deployment
 ├── argocd/                # ArgoCD configuration
+│   ├── application.yaml   # Application manifest
+│   └── project.yaml       # Project definition
 ├── terraform/             # AWS infrastructure as code (VPC, EKS, RDS)
 ├── k8s/                   # Kubernetes manifests
-├── Jenkinsfile            # CI/CD pipeline definition
+│   ├── node-app/          # App manifests + HPA + ServiceMonitor
+│   └── prometheus/        # Monitoring stack installation guide
+├── Jenkinsfile            # Jenkins CI/CD pipeline
 ├── deploy-k8s.sh          # Deployment automation
 └── run-jenkins.sh         # Jenkins setup script
 ```
@@ -224,12 +288,14 @@ devops-lab/
 
 ## Key Features
 
-- **GitOps Automation** - Continuous delivery from Git
+- **GitOps Automation** - Continuous delivery from Git with ArgoCD
+- **GitHub Actions** - Automated CI/CD workflows
 - **Self-Healing** - ArgoCD maintains desired state
 - **Helm Packaging** - Parameterized Kubernetes deployments
-- **CI/CD Pipeline** - Automated build, test, and security scanning
-- **Monitoring Stack** - Prometheus and Grafana integration
+- **Infrastructure as Code** - Terraform for AWS (VPC, EKS, RDS)
+- **Monitoring Stack** - Prometheus and Grafana (kube-prometheus-stack)
 - **Horizontal Autoscaling** - HPA with CPU/memory targets
+- **Database Integration** - PostgreSQL support with connection pooling
 - **Security Scanning** - Trivy vulnerability detection
 - **High Availability** - Multi-replica deployments
 

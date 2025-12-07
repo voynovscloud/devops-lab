@@ -1,0 +1,41 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: my-node-app/package-lock.json
+
+    - name: Install dependencies
+      working-directory: ./my-node-app
+      run: npm ci
+
+    - name: Run tests
+      working-directory: ./my-node-app
+      run: npm test
+
+    - name: Build Docker image
+      run: docker build -t devops-lab-nodeapp:${{ github.sha }} ./my-node-app
+
+    - name: Test Docker image
+      run: |
+        docker run -d -p 3000:3000 --name test-app devops-lab-nodeapp:${{ github.sha }}
+        sleep 5
+        curl -f http://localhost:3000/health || exit 1
+        docker stop test-app
+        docker rm test-app

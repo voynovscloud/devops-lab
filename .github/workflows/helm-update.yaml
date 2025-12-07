@@ -1,0 +1,43 @@
+name: Update Helm Chart
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'my-node-app/**'
+      - 'devops-lab-chart/**'
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Bump Helm chart version
+      run: |
+        cd devops-lab-chart
+        CURRENT_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+        NEW_PATCH=$((PATCH + 1))
+        NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+        sed -i "s/^version:.*/version: ${NEW_VERSION}/" Chart.yaml
+        sed -i "s/^appVersion:.*/appVersion: \"${NEW_VERSION}\"/" Chart.yaml
+        echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
+
+    - name: Commit and push
+      run: |
+        git add devops-lab-chart/Chart.yaml
+        git commit -m "chore: bump Helm chart version to ${{ env.NEW_VERSION }} [skip ci]" || exit 0
+        git push
