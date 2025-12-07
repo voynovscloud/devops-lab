@@ -49,6 +49,21 @@ spec:
         envFrom:
         - configMapRef:
             name: {{ include "devops-lab-chart.fullname" . }}-config
+        {{- if .Values.database.enabled }}
+        env:
+        - name: DB_HOST
+          value: {{ .Values.database.host | quote }}
+        - name: DB_PORT
+          value: {{ .Values.database.port | quote }}
+        - name: DB_NAME
+          value: {{ .Values.database.name | quote }}
+        - name: DB_USER
+          value: {{ .Values.database.user | quote }}
+        - name: DB_PASS
+          value: {{ .Values.database.password | quote }}
+        - name: DB_SSL
+          value: {{ .Values.database.ssl | quote }}
+        {{- end }}
         livenessProbe:
           {{- toYaml .Values.livenessProbe | nindent 12 }}
         readinessProbe:

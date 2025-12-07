@@ -1,9 +1,9 @@
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
-const { client, requestCounter } = require('./metrics');
+const { client, requestCounter, dbConnectionGauge } = require('./metrics');
+const { testConnection } = require('./database');
 
-// Request logging middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
@@ -14,12 +14,25 @@ app.get('/', (req, res) => {
   res.send('Hello from Node.js Docker Project!');
 });
 
-// Health
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+  const dbStatus = await testConnection();
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    database: dbStatus
+  };
+  
+  dbConnectionGauge.set(dbStatus.connected ? 1 : 0);
+  
+  res.json(health);
 });
 
-// Prometheus metrics endpoint
+app.get('/db-test', async (req, res) => {
+  const dbStatus = await testConnection();
+  dbConnectionGauge.set(dbStatus.connected ? 1 : 0);
+  res.json(dbStatus);
+});
+
 app.get('/metrics', async (req, res) => {
   res.set('Content-Type', client.register.contentType);
   res.end(await client.register.metrics());

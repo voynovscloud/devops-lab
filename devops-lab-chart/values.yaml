@@ -98,6 +98,16 @@ affinity: {}
 # Application configuration
 config:
   nodeEnv: "production"
+
+# Database configuration
+database:
+  enabled: false
+  host: ""
+  port: "5432"
+  name: ""
+  user: ""
+  password: ""
+  ssl: "false"
   port: "3000"
   logLevel: "info"
 

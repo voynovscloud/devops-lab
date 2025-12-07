@@ -5,6 +5,8 @@
 ![CI Status](https://img.shields.io/badge/CI-passing-brightgreen?style=flat&logo=jenkins)
 ![Helm Lint](https://img.shields.io/badge/Helm-lint%20passing-0F1689?style=flat&logo=helm)
 ![Docker Build](https://img.shields.io/badge/Docker-build%20passing-2496ED?style=flat&logo=docker&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-validated-7B42BC?style=flat&logo=terraform&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-ready-FF9900?style=flat&logo=amazonaws&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?style=flat&logo=kubernetes&logoColor=white)
 
@@ -158,13 +160,60 @@ Jenkins pipeline with automated stages:
 
 ---
 
+## AWS Deployment with Terraform
+
+Deploy to production AWS infrastructure with EKS, VPC, and RDS.
+
+### Infrastructure
+
+- **VPC**: 2 public + 2 private subnets across AZs
+- **EKS Cluster**: Kubernetes 1.28 with 2 node groups (t3.medium)
+- **RDS PostgreSQL**: db.t3.micro with automated backups
+
+### Deploy to AWS
+
+```bash
+cd terraform
+
+# Initialize
+terraform init
+
+# Set database password
+export TF_VAR_db_password="YourSecurePassword123!"
+
+# Deploy infrastructure (~30 minutes)
+terraform apply
+
+# Configure kubectl
+aws eks update-kubeconfig --region eu-central-1 --name devops-lab
+
+# Deploy application with database
+export RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
+export DB_NAME=$(terraform output -raw rds_database_name)
+
+helm install devops-lab ../devops-lab-chart \
+  --set database.enabled=true \
+  --set database.host="${RDS_ENDPOINT%%:*}" \
+  --set database.name="${DB_NAME}" \
+  --set database.user="dbadmin" \
+  --set database.password="${TF_VAR_db_password}"
+```
+
+**Cost**: ~$184-244/month  
+**Deployment time**: ~30 minutes
+
+See [terraform/README.md](terraform/README.md) for detailed instructions.
+
+---
+
 ## Project Structure
 
 ```
 devops-lab/
-├── my-node-app/           # Node.js Express application
+├── my-node-app/           # Node.js Express application with PostgreSQL support
 ├── devops-lab-chart/      # Helm chart for GitOps deployment
 ├── argocd/                # ArgoCD configuration
+├── terraform/             # AWS infrastructure as code (VPC, EKS, RDS)
 ├── k8s/                   # Kubernetes manifests
 ├── Jenkinsfile            # CI/CD pipeline definition
 ├── deploy-k8s.sh          # Deployment automation
