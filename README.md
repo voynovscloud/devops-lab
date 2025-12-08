@@ -97,22 +97,22 @@ aws configure         # AWS credentials
 minikube start --cpus=4 --memory=8192 --driver=docker
 minikube addons enable ingress
 
-# 2. Deploy monitoring stack
+# 2. Deploy application
+kubectl create namespace production
+helm install my-node-app ./devops-lab-chart \
+  --namespace production
+
+# 3. Deploy monitoring stack
 kubectl create namespace monitoring
 kubectl apply -f k8s/prometheus/
 kubectl apply -f k8s/grafana/
 
-# 3. Install ArgoCD
+# 4. Install ArgoCD (optional)
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
 # Get ArgoCD password
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-
-# 4. Deploy application
-helm install my-node-app ./devops-lab-chart \
-  --namespace production \
-  --create-namespace
 
 # 5. Access application
 kubectl port-forward -n production svc/my-node-app 3000:80
@@ -206,9 +206,7 @@ devops-lab/
 │   └── helm-update.yaml      # Auto-bump chart version
 │
 ├── Jenkinsfile               # Jenkins pipeline (local dev)
-└── scripts/
-    ├── load-test.sh          # HPA testing script
-    └── nuclear-cleanup.sh    # AWS cleanup utility
+└── Jenkinsfile               # Jenkins pipeline (local dev)
 ```
 
 ## 🔄 CI/CD Pipelines
@@ -327,9 +325,6 @@ curl http://localhost:3000/db-test
 
 # Prometheus metrics
 curl http://localhost:3000/metrics
-
-# Load test (trigger HPA)
-./scripts/load-test.sh
 
 # Watch auto-scaling
 kubectl get hpa -n production -w
