@@ -114,12 +114,18 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 # Get ArgoCD password
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 
-# 5. Access application
-kubectl port-forward -n production svc/my-node-app 3000:80
+# 5. Apply ingress rules
+kubectl apply -f k8s/ingress-all.yaml
+kubectl apply -f k8s/argocd-ingress.yaml
 
-# Test endpoints
-curl http://localhost:3000/health
-curl http://localhost:3000/metrics
+# 6. Add hosts entries (Linux/Mac)
+echo "$(minikube ip) app.local grafana.local prometheus.local argocd.local" | sudo tee -a /etc/hosts
+
+# Access services
+# App: http://app.local
+# Grafana: http://grafana.local (admin/admin)
+# Prometheus: http://prometheus.local
+# ArgoCD: http://argocd.local
 ```
 
 ### AWS Production Deployment
@@ -151,9 +157,14 @@ helm install my-node-app ./devops-lab-chart \
   --set database.host=$RDS_HOST \
   --set database.password=$TF_VAR_db_password
 
-# 6. Verify deployment
+# 6. Apply ingress rules
+kubectl apply -f k8s/ingress-all.yaml
+kubectl apply -f k8s/argocd-ingress.yaml
+
+# 7. Verify deployment
 kubectl get all -n production
 kubectl get hpa -n production
+kubectl get ingress --all-namespaces
 ```
 
 > **💰 AWS Cost:** ~€105-110/month (EKS €75 + NAT €30). Deploy for 2-3 days (~€7-10) for portfolio, then destroy.
@@ -276,12 +287,25 @@ nodejs_eventloop_lag_seconds         # Event loop performance
 
 ### Access Monitoring
 
+**Minikube (local):**
 ```bash
-# Prometheus
-kubectl port-forward -n monitoring svc/prometheus 9090:9090
+# Add to /etc/hosts if not already added
+echo "$(minikube ip) grafana.local prometheus.local" | sudo tee -a /etc/hosts
 
-# Grafana
-kubectl port-forward -n monitoring svc/grafana 3000:3000
+# Access via browser
+# Grafana: http://grafana.local (admin/admin)
+# Prometheus: http://prometheus.local
+```
+
+**AWS (production):**
+```bash
+# Get LoadBalancer IP/hostname
+kubectl get ingress -n monitoring
+
+# Access via:
+# Grafana: http://<LoadBalancer-IP> with Host: grafana.local
+# Prometheus: http://<LoadBalancer-IP> with Host: prometheus.local
+# Or configure DNS A records pointing to LoadBalancer
 ```
 
 ## 🎯 Key Features
@@ -318,16 +342,19 @@ kubectl get hpa -n production -w
 
 ```bash
 # Health check
-curl http://localhost:3000/health
+curl http://app.local/health
 
 # Database connectivity
-curl http://localhost:3000/db-test
+curl http://app.local/db-test
 
 # Prometheus metrics
-curl http://localhost:3000/metrics
+curl http://app.local/metrics
 
 # Watch auto-scaling
 kubectl get hpa -n production -w
+
+# Check all ingress routes
+kubectl get ingress --all-namespaces
 ```
 
 ## 🧹 Cleanup
