@@ -1,10 +1,8 @@
-# DevOps Lab - Production Kubernetes Platform
+# Production-Grade DevOps Platform
 
-> Complete end-to-end DevOps pipeline featuring Kubernetes, GitOps, Infrastructure as Code, and CI/CD automation
+> End-to-end cloud-native infrastructure demonstrating enterprise Kubernetes deployment with GitOps, IaC, and automated CI/CD pipelines
 
 <div align="center">
-
-### Technologies Used
 
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com/)
@@ -12,7 +10,6 @@
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?style=for-the-badge&logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
 [![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)](https://terraform.io/)
 [![AWS](https://img.shields.io/badge/AWS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
-
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/features/actions)
 [![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)](https://jenkins.io/)
 [![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)](https://prometheus.io/)
@@ -22,233 +19,170 @@
 
 </div>
 
-## 📋 Project Overview
+## Overview
 
-This project demonstrates a **production-ready DevOps pipeline** with modern cloud-native practices, showcasing:
+Production-ready Kubernetes platform demonstrating modern DevOps practices with complete automation from code commit to production deployment.
 
-- ✅ **Containerized Application** - Node.js REST API with PostgreSQL
-- ✅ **Kubernetes Orchestration** - EKS cluster with Helm package management
-- ✅ **GitOps Deployment** - ArgoCD auto-sync and self-healing
-- ✅ **Infrastructure as Code** - Terraform provisioning AWS resources
-- ✅ **CI/CD Automation** - GitHub Actions + Jenkins pipelines
-- ✅ **Monitoring & Observability** - Prometheus + Grafana stack
-- ✅ **Auto-scaling** - HPA based on CPU/memory metrics
-- ✅ **Production Security** - RBAC, Secrets, non-root containers
+**Key Capabilities:**
+- Containerized microservices with Node.js and PostgreSQL
+- AWS EKS cluster management with Terraform IaC
+- GitOps-driven deployments via ArgoCD
+- Dual CI/CD pipelines (GitHub Actions for production, Jenkins for local development)
+- Full observability stack with Prometheus and Grafana
+- Horizontal Pod Autoscaling based on resource metrics
+- Enterprise security with RBAC, Secrets management, and non-root containers
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                   GitHub Repository                         │
-│             (Single Source of Truth)                        │
-└──────────────┬──────────────────────────┬───────────────────┘
-               │                          │
-    ┌──────────▼────────────┐  ┌─────────▼──────────┐
-    │  GitHub Actions       │  │   Jenkins Pipeline  │
-    │  • Test & Build       │  │   • Local Dev       │
-    │  • Push to ghcr.io    │  │   • Minikube        │
-    │  • Helm Version Bump  │  │   • Health Checks   │
-    └──────────┬────────────┘  └────────────────────┘
-               │
-               ▼
-    ┌─────────────────────────────────────────────────────┐
-    │              ArgoCD (GitOps)                        │
-    │     Auto-sync every 3min • Self-healing             │
-    └──────────┬──────────────────────────────────────────┘
-               │
-               ▼
-    ┌─────────────────────────────────────────────────────┐
-    │          Kubernetes Cluster (AWS EKS)               │
-    │  ┌─────────────────┐  ┌────────────┐  ┌──────────┐ │
-    │  │  Node App       │  │ Prometheus │  │ Grafana  │ │
-    │  │  (3 replicas)   │  │ (metrics)  │  │ (dashb.) │ │
-    │  │  HPA: 2-10 pods │  └────────────┘  └──────────┘ │
-    │  └─────────────────┘                                │
-    │  ┌──────────────────────────────────────────────┐   │
-    │  │   PostgreSQL RDS (Multi-AZ)                  │   │
-    │  └──────────────────────────────────────────────┘   │
-    └─────────────────────────────────────────────────────┘
-               │
-    ┌──────────▼─────────────────────────────────────────┐
-    │     Terraform (Infrastructure as Code)             │
-    │  • VPC (10.0.0.0/16, 2 AZs)                       │
-    │  • EKS Cluster (Kubernetes 1.28)                  │
-    │  • RDS PostgreSQL 15.7 (db.t3.micro)              │
-    │  • NAT Gateway • Security Groups • IAM Roles      │
-    └────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  Git Repository (Source of Truth)                       │
+└────┬─────────────────────────────────┬─────────────────┘
+     │                                 │
+     ▼                                 ▼
+┌─────────────────┐          ┌──────────────────┐
+│ GitHub Actions  │          │ Jenkins Pipeline │
+│ (Production)    │          │ (Local Dev)      │
+└────┬────────────┘          └──────────────────┘
+     │
+     ▼
+┌─────────────────────────────────────────────────────────┐
+│  ArgoCD (GitOps Controller)                             │
+│  • Auto-sync: 3min interval  • Self-healing enabled     │
+└────┬────────────────────────────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────────────────────────────────┐
+│  AWS EKS Cluster (Kubernetes 1.28)                      │
+│  ┌──────────────┐  ┌────────────┐  ┌────────────┐      │
+│  │ Application  │  │ Prometheus │  │ Grafana    │      │
+│  │ HPA: 2-10    │  │ Metrics    │  │ Dashboards │      │
+│  └──────────────┘  └────────────┘  └────────────┘      │
+│  ┌──────────────────────────────────────────────┐      │
+│  │ RDS PostgreSQL (Multi-AZ)                    │      │
+│  └──────────────────────────────────────────────┘      │
+└─────────────────────────────────────────────────────────┘
+     │
+┌────▼─────────────────────────────────────────────────────┐
+│  Terraform (IaC)                                         │
+│  VPC • Subnets • EKS • RDS • Security Groups • IAM      │
+└──────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-```bash
-docker --version        # 20.10+
-kubectl version        # 1.28+
-helm version          # 3.12+
-terraform --version   # 1.5+
-aws configure         # AWS credentials
-```
+- Docker 20.10+
+- kubectl 1.28+
+- Helm 3.12+
+- Terraform 1.5+
+- AWS CLI configured with valid credentials
 
 ### Local Development (Minikube)
 
 ```bash
-# 1. Start Minikube cluster
+# Initialize cluster
 minikube start --cpus=4 --memory=8192 --driver=docker
 minikube addons enable ingress
 
-# 2. Deploy application
+# Deploy application
 kubectl create namespace production
-helm install my-node-app ./devops-lab-chart \
-  --namespace production
+helm install my-node-app ./devops-lab-chart --namespace production
 
-# 3. Deploy monitoring stack
+# Deploy observability stack
 kubectl create namespace monitoring
 kubectl apply -f k8s/prometheus/
 kubectl apply -f k8s/grafana/
 
-# 4. Install ArgoCD (optional)
+# Deploy ArgoCD (optional)
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-# Get ArgoCD password
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 
-# 5. Apply ingress rules
+# Configure ingress
 kubectl apply -f k8s/ingress-all.yaml
 kubectl apply -f k8s/argocd-ingress.yaml
-
-# 6. Add hosts entries (Linux/Mac)
 echo "$(minikube ip) app.local grafana.local prometheus.local argocd.local" | sudo tee -a /etc/hosts
-
-# Access services
-# App: http://app.local
-# Grafana: http://grafana.local (admin/admin)
-# Prometheus: http://prometheus.local
-# ArgoCD: http://argocd.local
 ```
+
+**Access URLs:**
+- Application: `http://app.local`
+- Grafana: `http://grafana.local` (admin/admin)
+- Prometheus: `http://prometheus.local`
+- ArgoCD: `http://argocd.local`
 
 ### AWS Production Deployment
 
 ```bash
-# 1. Configure AWS and set DB password
+# Configure credentials and secrets
 aws configure
-export TF_VAR_db_password="SecurePassword123!"
+export TF_VAR_db_password="<secure-password>"
 
-# 2. Deploy infrastructure (~15 minutes)
+# Provision infrastructure (~15 minutes)
 cd terraform/
 terraform init
 terraform apply -var-file="terraform-free-tier.tfvars"
 
-# 3. Configure kubectl for EKS
-aws eks update-kubeconfig --region eu-central-1 --name devops-lab-v2
+# Configure kubectl
+aws eks update-kubeconfig --region eu-central-1 --name devops-lab
 
-# 4. Deploy monitoring
+# Deploy observability stack
 kubectl create namespace monitoring
 kubectl apply -f k8s/prometheus/
 kubectl apply -f k8s/grafana/
 
-# 5. Deploy application with RDS
+# Deploy application with database
 RDS_HOST=$(cd terraform && terraform output -raw rds_endpoint)
 helm install my-node-app ./devops-lab-chart \
-  --namespace production \
-  --create-namespace \
+  --namespace production --create-namespace \
   --set database.enabled=true \
   --set database.host=$RDS_HOST \
   --set database.password=$TF_VAR_db_password
 
-# 6. Apply ingress rules
+# Configure ingress
 kubectl apply -f k8s/ingress-all.yaml
 kubectl apply -f k8s/argocd-ingress.yaml
 
-# 7. Verify deployment
+# Verify deployment
 kubectl get all -n production
 kubectl get hpa -n production
-kubectl get ingress --all-namespaces
+kubectl get ingress -A
 ```
 
-> **💰 AWS Cost:** ~€105-110/month (EKS €75 + NAT €30). Deploy for 2-3 days (~€7-10) for portfolio, then destroy.
+> **Cost Warning:** AWS EKS costs ~€105-110/month (€75 control plane + €30 NAT Gateway). Recommended for short-term portfolio deployments (2-3 days ≈ €7-10).
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 devops-lab/
-├── my-node-app/              # Node.js Express application
-│   ├── server.js             # REST API (/health, /metrics, /db-test)
-│   ├── database.js           # PostgreSQL connection pool
-│   ├── metrics.js            # Prometheus metrics (prom-client)
-│   ├── Dockerfile            # Multi-stage Alpine build
-│   └── package.json          # Dependencies
-│
-├── devops-lab-chart/         # Helm chart for Kubernetes
-│   ├── Chart.yaml            # Chart metadata (v1.0.x)
-│   ├── values.yaml           # Configuration (100+ parameters)
-│   └── templates/            # Kubernetes manifests
-│       ├── deployment.yaml   # 3 replicas, rolling updates
-│       ├── service.yaml      # ClusterIP service
-│       ├── hpa.yaml          # Auto-scaling (2-10 pods)
-│       ├── ingress.yaml      # NGINX Ingress routing
-│       ├── secret.yaml       # Database credentials
-│       └── configmap.yaml    # Environment variables
-│
-├── terraform/                # AWS Infrastructure as Code
-│   ├── main.tf               # Provider configuration
-│   ├── vpc.tf                # VPC, subnets, NAT gateway
-│   ├── eks.tf                # EKS cluster + node groups
-│   ├── rds.tf                # PostgreSQL RDS instance
-│   ├── variables.tf          # Input variables
-│   ├── outputs.tf            # Output values
-│   └── terraform-free-tier.tfvars  # Cost-optimized config
-│
-├── k8s/                      # Raw Kubernetes manifests
-│   ├── prometheus/           # Metrics collection
-│   ├── grafana/              # Visualization dashboards
-│   ├── node-app/             # Application manifests
-│   ├── ingress-all.yaml      # Combined ingress rules
-│   └── argocd-ingress.yaml   # ArgoCD UI access
-│
-├── argocd/                   # GitOps configuration
-│   ├── application.yaml      # ArgoCD app definition
-│   └── project.yaml          # ArgoCD project
-│
-├── .github/workflows/        # CI/CD pipelines
-│   ├── build.yaml            # Test on every push
-│   ├── push.yaml             # Build & push Docker image
-│   └── helm-update.yaml      # Auto-bump chart version
-│
-├── Jenkinsfile               # Jenkins pipeline (local dev)
-└── Jenkinsfile               # Jenkins pipeline (local dev)
+├── my-node-app/                  # Node.js application with PostgreSQL
+├── devops-lab-chart/             # Helm chart (100+ configurable parameters)
+├── terraform/                    # AWS infrastructure (VPC, EKS, RDS)
+├── k8s/                          # Kubernetes manifests
+│   ├── prometheus/               # Metrics collection
+│   ├── grafana/                  # Visualization dashboards
+│   └── ingress-all.yaml          # Ingress routing
+├── argocd/                       # GitOps configuration
+├── .github/workflows/            # GitHub Actions pipelines
+├── docs/                         # Documentation
+└── Jenkinsfile                   # Jenkins pipeline
 ```
 
-## 🔄 CI/CD Pipelines
+## CI/CD Pipelines
 
 ### GitHub Actions (Production)
 
-**Workflow 1: Build & Test** (`.github/workflows/build.yaml`)
-- Triggers on every push
-- Runs unit tests with npm
-- Validates code quality
-
-**Workflow 2: Docker Build & Push** (`.github/workflows/push.yaml`)
-- Triggers on push to main
-- Builds multi-stage Docker image
-- Pushes to `ghcr.io/voynovscloud/devops-lab-nodeapp`
-
-**Workflow 3: Helm Version Bump** (`.github/workflows/helm-update.yaml`)
-- Auto-increments chart version
-- Commits to Git → ArgoCD auto-deploys
+**Automated Workflows:**
+- **Build & Test:** Validates code quality on every push
+- **Docker Build & Push:** Builds multi-stage image and pushes to `ghcr.io`
+- **Helm Version Bump:** Auto-increments chart version, triggering ArgoCD deployment
 
 ### Jenkins (Local Development)
 
-**Pipeline Stages** (`Jenkinsfile`):
-1. **Checkout** - Clone repo & get commit SHA
-2. **Build** - Create Docker image
-3. **Test** - Health check validation
-4. **Security Scan** - Trivy vulnerability scan
-5. **Deploy to Minikube** - Local K8s deployment
+**Pipeline Stages:** Checkout → Build → Test → Security Scan (Trivy) → Deploy to Minikube
 
 ```bash
-# Run Jenkins in Docker
 docker run -d -p 8080:8080 -p 50000:50000 \
   -v jenkins_home:/var/jenkins_home \
   -v /var/run/docker.sock:/var/run/docker.sock \
@@ -257,167 +191,129 @@ docker run -d -p 8080:8080 -p 50000:50000 \
 
 ### GitOps with ArgoCD
 
-- **Auto-sync:** Every 3 minutes
-- **Self-healing:** Reverts manual changes automatically
-- **Source of Truth:** Git repository
-- **Prune:** Removes deleted resources
+- Auto-sync interval: 3 minutes
+- Self-healing: Automatically reverts manual cluster changes
+- Git as source of truth for all cluster state
+- Automatic pruning of deleted resources
 
-## 📊 Monitoring & Observability
+## Monitoring & Observability
 
-### Prometheus (Metrics Collection)
-- **Scrape interval:** 30 seconds
-- **Retention:** 15 days
-- **Storage:** 10Gi persistent volume
-- **Auto-discovery:** Kubernetes pods with metrics annotations
+### Prometheus
+- Scrape interval: 30s | Retention: 15 days | Storage: 10Gi PVC
+- Service discovery via Kubernetes annotations
 
-### Grafana (Visualization)
-- **Access:** Port-forward or Ingress
-- **Credentials:** admin / admin (default)
-- **Datasource:** Prometheus (pre-configured)
-- **Dashboards:** Application monitoring (12 panels)
+### Grafana
+- Pre-configured Prometheus datasource
+- Custom dashboard with 12 application metrics panels
+- Default credentials: `admin` / `admin`
 
 ### Application Metrics
-```
-# Exposed at /metrics endpoint
-http_requests_total                   # Request counter by route
-http_request_duration_seconds         # Response time histogram
-nodejs_heap_size_used_bytes          # Memory usage
-nodejs_eventloop_lag_seconds         # Event loop performance
-```
 
-### Access Monitoring
+Exposed at `/metrics` endpoint:
+- `http_requests_total` — Request counter per route
+- `http_request_duration_seconds` — Response latency histogram
+- `nodejs_heap_size_used_bytes` — Memory consumption
+- `nodejs_eventloop_lag_seconds` — Event loop performance
 
-**Minikube (local):**
+### Access
+
+**Local (Minikube):**
 ```bash
-# Add to /etc/hosts if not already added
 echo "$(minikube ip) grafana.local prometheus.local" | sudo tee -a /etc/hosts
-
-# Access via browser
-# Grafana: http://grafana.local (admin/admin)
-# Prometheus: http://prometheus.local
 ```
+Access: `http://grafana.local` | `http://prometheus.local`
 
-**AWS (production):**
+**AWS (Production):**
 ```bash
-# Get LoadBalancer IP/hostname
 kubectl get ingress -n monitoring
-
-# Access via:
-# Grafana: http://<LoadBalancer-IP> with Host: grafana.local
-# Prometheus: http://<LoadBalancer-IP> with Host: prometheus.local
-# Or configure DNS A records pointing to LoadBalancer
 ```
+Configure DNS A records or use LoadBalancer IP with Host headers.
 
-## 🎯 Key Features
+## Key Features
 
-### Auto-Scaling (HPA)
-- **Min replicas:** 2
-- **Max replicas:** 10
-- **CPU target:** 60%
-- **Memory target:** 70%
-- **Scale up:** CPU/Memory > target for 30s
-- **Scale down:** CPU/Memory < target for 5min
+### Horizontal Pod Autoscaling
+- Min: 2 | Max: 10 replicas
+- Targets: 60% CPU, 70% memory
+- Scale-up threshold: 30s | Scale-down threshold: 5min
 
-Test scaling:
 ```bash
-./scripts/load-test.sh
 kubectl get hpa -n production -w
 ```
 
 ### High Availability
-- ✅ 3 replicas by default
-- ✅ Multi-AZ deployment (AWS)
-- ✅ Rolling updates (zero downtime)
-- ✅ Health checks (liveness + readiness)
-- ✅ Pod anti-affinity (spread across nodes)
+- Multi-replica deployment (3 replicas default)
+- Multi-AZ distribution on AWS
+- Rolling updates with zero downtime
+- Liveness and readiness probes
+- Pod anti-affinity rules for node distribution
 
 ### Security
-- ✅ Non-root containers (user: appuser)
-- ✅ Kubernetes Secrets for credentials
-- ✅ RBAC enabled
-- ✅ AWS Security Groups
-- ✅ Private subnets for database
+- Non-root container execution
+- Kubernetes Secrets for sensitive data
+- RBAC authorization
+- Network isolation via Security Groups
+- Private subnet architecture for databases
 
-## 🧪 Testing
+## Testing
 
 ```bash
-# Health check
+# Application health
 curl http://app.local/health
-
-# Database connectivity
 curl http://app.local/db-test
-
-# Prometheus metrics
 curl http://app.local/metrics
 
-# Watch auto-scaling
+# Kubernetes resources
 kubectl get hpa -n production -w
-
-# Check all ingress routes
-kubectl get ingress --all-namespaces
+kubectl get ingress -A
 ```
 
-## 🧹 Cleanup
+## Cleanup
 
-### Local (Minikube)
+**Local:**
 ```bash
 helm uninstall my-node-app -n production
 kubectl delete namespace production monitoring argocd
 minikube delete
 ```
 
-### AWS (IMPORTANT!)
+**AWS (Critical):**
 ```bash
-# Delete application
 helm uninstall my-node-app -n production
+cd terraform && terraform destroy -var-file="terraform-free-tier.tfvars"
 
-# Destroy infrastructure
-cd terraform/
-terraform destroy -var-file="terraform-free-tier.tfvars"
-
-# Verify deletion
+# Verify resource deletion
 aws eks list-clusters --region eu-central-1
 aws rds describe-db-instances --region eu-central-1
 ```
 
-## 🎓 Skills Demonstrated
+## Technical Skills Demonstrated
 
-| Category | Technologies & Skills |
-|----------|----------------------|
-| **Containers** | Docker multi-stage builds, Alpine Linux, security best practices |
-| **Orchestration** | Kubernetes deployments, services, ConfigMaps, Secrets, Ingress |
-| **Package Management** | Helm charts with 100+ configurable parameters |
-| **GitOps** | ArgoCD auto-sync, self-healing, declarative deployments |
-| **IaC** | Terraform for AWS VPC, EKS, RDS provisioning |
-| **CI/CD** | GitHub Actions workflows, Jenkins pipelines, automated testing |
-| **Monitoring** | Prometheus metrics, Grafana dashboards, ServiceMonitor |
-| **Auto-scaling** | HPA configuration, load testing, performance optimization |
-| **Networking** | VPC design, subnet segmentation, NAT gateways, security groups |
-| **Security** | RBAC, Secrets management, non-root containers, least privilege |
-| **Cloud** | AWS EKS, RDS, EC2, IAM, networking architecture |
-| **Databases** | PostgreSQL connection pooling, RDS multi-AZ |
+| Domain | Implementation |
+|--------|----------------|
+| **Containers** | Multi-stage Docker builds, Alpine-based images, non-root execution |
+| **Orchestration** | Kubernetes (Deployments, Services, ConfigMaps, Secrets, Ingress, HPA) |
+| **Package Management** | Helm charts with environment-specific value overrides |
+| **GitOps** | ArgoCD with automated sync, self-healing, and pruning |
+| **Infrastructure as Code** | Terraform modules for VPC, EKS, RDS provisioning |
+| **CI/CD** | GitHub Actions workflows, Jenkins declarative pipelines |
+| **Observability** | Prometheus metrics collection, Grafana visualization |
+| **Networking** | VPC design, multi-AZ architecture, NAT gateways, security groups |
+| **Security** | RBAC policies, Kubernetes Secrets, private subnets, least privilege IAM |
+| **Cloud Platform** | AWS (EKS, RDS, VPC, IAM, CloudWatch) |
+| **Databases** | PostgreSQL with connection pooling, RDS multi-AZ deployments |
 
-## 📖 Documentation
+## Documentation
 
-- **Helm Chart:** [devops-lab-chart/README.md](devops-lab-chart/README.md)
-- **Terraform Guide:** [terraform/README.md](terraform/README.md)
-- **ArgoCD Setup:** [argocd/README.md](argocd/README.md)
-- **Monitoring Alerts:** [docs/ALERTING.md](docs/ALERTING.md)
+- [Helm Chart Guide](devops-lab-chart/README.md)
+- [Terraform Infrastructure](terraform/README.md)
+- [ArgoCD Configuration](argocd/README.md)
+- [Alerting Setup](docs/ALERTING.md)
 
-## 📝 License
+## License
 
 MIT License - see [LICENSE](LICENSE)
 
-## 👤 Author
-
-**Deyvid Voynov**
-- GitHub: [@voynovscloud](https://github.com/voynovscloud)
-- Project: [devops-lab](https://github.com/voynovscloud/devops-lab)
-
 ---
 
-<div align="center">
-
-**⭐ If this project helped you learn DevOps, please star it!**
-
-</div>
+**Author:** Deyvid Voynov  
+**GitHub:** [@voynovscloud](https://github.com/voynovscloud)
