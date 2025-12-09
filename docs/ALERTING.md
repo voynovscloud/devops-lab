@@ -1,41 +1,45 @@
-# Alerting Configuration Guide
+# 🔔 Alerting Setup Guide
 
-Production-grade alerting setup using Prometheus Alertmanager with multiple notification channels.
+This guide explains how to configure alerting for your DevOps Lab application using Prometheus Alertmanager.
 
-## Contents
-- [Installation](#installation)
+## Table of Contents
+- [Quick Start](#quick-start)
 - [Slack Integration](#slack-integration)
-- [Email Notifications](#email-notifications)
+- [Email Integration](#email-integration)
 - [PagerDuty Integration](#pagerduty-integration)
-- [Testing](#testing)
+- [Testing Alerts](#testing-alerts)
 
 ---
 
-## Installation
+## Quick Start
 
-### Deploy Alertmanager
+### 1. Install Alertmanager
 
 ```bash
+# Create Alertmanager configuration
 kubectl apply -f k8s/prometheus/alertmanager-config.yaml
+
+# Deploy Alertmanager
 kubectl apply -f k8s/prometheus/alertmanager-deployment.yaml
 kubectl apply -f k8s/prometheus/alertmanager-service.yaml
 
-# Verify
+# Verify deployment
 kubectl get pods -n monitoring -l app=alertmanager
 ```
 
-### Configure Prometheus
+### 2. Configure Prometheus to use Alertmanager
 
-Update Prometheus ConfigMap:
+Update Prometheus ConfigMap to include Alertmanager:
 
 ```yaml
 alerting:
   alertmanagers:
   - static_configs:
-    - targets: ["alertmanager-service:9093"]
+    - targets:
+      - alertmanager-service:9093
 ```
 
-Deploy alert rules:
+Apply alerts:
 
 ```bash
 kubectl apply -f k8s/prometheus/alerts.yaml
@@ -46,23 +50,28 @@ kubectl rollout restart deployment prometheus -n monitoring
 
 ## Slack Integration
 
-### 1. Create Webhook
+### Step 1: Create Slack Webhook
 
-1. Navigate to https://api.slack.com/apps
-2. Create New App → From scratch
-3. Enable Incoming Webhooks
-4. Add webhook to workspace (select channel: #alerts)
-5. Copy webhook URL
+1. Go to https://api.slack.com/apps
+2. Click "Create New App" → "From scratch"
+3. Name: "Prometheus Alerts"
+4. Select your workspace
+5. Navigate to "Incoming Webhooks"
+6. Activate Incoming Webhooks
+7. Click "Add New Webhook to Workspace"
+8. Select channel (e.g., #alerts)
+9. Copy the Webhook URL
 
-### 2. Configure Secret
+### Step 2: Create Alertmanager Secret
 
 ```bash
+# Create secret with Slack webhook URL
 kubectl create secret generic alertmanager-slack \
   --from-literal=webhook-url='https://hooks.slack.com/services/YOUR/WEBHOOK/URL' \
   -n monitoring
 ```
 
-### 3. Update Alertmanager Configuration
+### Step 3: Configure Alertmanager for Slack
 
 Create `alertmanager-config.yaml`:
 
