@@ -399,10 +399,11 @@ aws rds describe-db-instances --region eu-central-1
 
 ## 📖 Documentation
 
-- **Helm Chart:** [devops-lab-chart/README.md](devops-lab-chart/README.md)
-- **Terraform Guide:** [terraform/README.md](terraform/README.md)
-- **ArgoCD Setup:** [argocd/README.md](argocd/README.md)
-- **Monitoring Alerts:** [docs/ALERTING.md](docs/ALERTING.md)
+- **Helm Chart:** [docs/HELM_CHART.md](docs/HELM_CHART.md)
+- **Terraform Guide:** [docs/TERRAFORM.md](docs/TERRAFORM.md)
+- **ArgoCD Setup:** [docs/ARGOCD.md](docs/ARGOCD.md)
+- **Monitoring Stack:** [docs/MONITORING.md](docs/MONITORING.md)
+- **Alerting Setup:** [docs/ALERTING.md](docs/ALERTING.md)
 
 ## 📝 License
 
